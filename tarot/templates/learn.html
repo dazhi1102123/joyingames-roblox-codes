@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="wrap">
+  <p class="crumbs"><a href="{{ url_for('home') }}">Home</a><span>/</span>Learn</p>
+</div>
+
+<section class="prose narrow">
+  <p class="eyebrow">Getting started</p>
+  <h1>How to read tarot without pretending</h1>
+
+  <p>Tarot is a structured way of looking at a situation you are already in. The cards do not
+     know anything you do not — what they do is interrupt the story you have been telling
+     yourself long enough for a different reading to become possible. That is genuinely useful,
+     and it does not require believing anything in particular.</p>
+
+  <h2>Ask a question that can be answered</h2>
+  <p>The single biggest determinant of whether a reading is useful is the question. "What does my
+     future hold" produces fog. "What am I not seeing about this job offer" produces something you
+     can act on.</p>
+  <ul>
+    <li><strong>Open beats closed.</strong> "What should I know about…" gives the cards room. "Will he call" does not.</li>
+    <li><strong>Ask about you.</strong> The cards read your situation, not another person's private mind.</li>
+    <li><strong>One question at a time.</strong> Two questions in one spread produce an answer to neither.</li>
+    <li><strong>Avoid asking twice.</strong> Re-drawing until you like the answer is how you learn nothing.</li>
+  </ul>
+
+  <h2>Position first, card second</h2>
+  <p>The same card means different things in different seats. The Tower in <em>outcome</em> is a
+     warning; The Tower in <em>what is passing out of influence</em> is relief. Read the position's
+     question first, then ask what this card says in answer to it. Beginners reverse that order and
+     end up with a pile of definitions instead of a reading.</p>
+
+  <h2>Reversals are not opposites</h2>
+  <p>A reversed card is usually the same force turned inward, blocked, or badly timed — not its
+     negation. Reversed Strength is not weakness; it is strength applied against yourself. If
+     reversals feel like noise, turn them off. A 78-card deck read upright only is a complete
+     system.</p>
+
+  <h2>Read the spread as a whole</h2>
+  <p>This is the step most people skip, and it is where the answer usually is. Before interpreting
+     any single card, look at the shape:</p>
+  <ul>
+    <li><strong>Major arcana count.</strong> Many majors means the situation is structural and largely outside your daily control. Few or none means it is practical, and you have levers.</li>
+    <li><strong>Suit balance.</strong> A spread heavy in Pentacles is about material reality; heavy in Swords, about what you are thinking. Solutions from the wrong register slide off.</li>
+    <li><strong>Reversal density.</strong> Mostly reversed usually means blocked energy rather than absent energy.</li>
+    <li><strong>Repeated numbers.</strong> Three fives is a spread about loss and adjustment, whatever the suits say.</li>
+  </ul>
+
+  <h2>The four suits, briefly</h2>
+  <dl class="facts">
+    {% for key, s in suits.items() %}
+    <div><dt style="text-align:left;min-width:120px">{{ s.name }}</dt><dd style="text-align:left;color:var(--ink-2)">{{ s.element }} — {{ s.domain }}</dd></div>
+    {% endfor %}
+  </dl>
+
+  <h2>When a reading is bad news</h2>
+  <p>Death, The Tower and the Ten of Swords are the cards people dread, and they are usually the
+     most useful ones in the deck. Each of them describes something that is already over being
+     recognised as over. That is uncomfortable and it is not a prediction — it is a description of
+     where you already are.</p>
+
+  <div class="cta-inline">
+    <p><strong>Try it with a real question.</strong> Three cards is enough structure to see a
+       trajectory without drowning in detail.</p>
+    <a class="btn small" href="{{ url_for('reading', slug='three-card') }}">Draw three cards</a>
+  </div>
+</section>
+{% endblock %}

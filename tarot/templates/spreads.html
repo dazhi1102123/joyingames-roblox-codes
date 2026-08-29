@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="wrap">
+  <p class="crumbs"><a href="{{ url_for('home') }}">Home</a><span>/</span>Spreads</p>
+</div>
+
+<section class="card-page">
+  <div class="wrap">
+    <div class="band-head">
+      <p class="eyebrow">Six spreads</p>
+      <h1 style="font-size:clamp(32px,5vw,50px);line-height:1.06">Tarot spreads, and when to use which</h1>
+      <p>A spread is a set of questions, not a set of cards. Choosing the wrong one is the most
+         common reason a reading feels vague.</p>
+    </div>
+
+    {% for key, s in spreads.items() %}
+    <div style="margin-bottom:52px;padding-bottom:44px;border-bottom:1px solid var(--rule)">
+      <div class="suit-head" style="margin-top:0">
+        <h2>{{ s.name }}</h2>
+        <span class="note">{{ s.count }} card{{ 's' if s.count > 1 else '' }}</span>
+      </div>
+      <p style="max-width:64ch;color:var(--ink-2)">{{ s.blurb }}</p>
+      <dl class="facts" style="max-width:64ch">
+        {% for name, desc in s.positions %}
+        <div><dt style="min-width:150px;text-align:left">{{ name }}</dt><dd style="text-align:left;color:var(--ink-2)">{{ desc }}</dd></div>
+        {% endfor %}
+      </dl>
+      <p style="margin-top:20px"><a class="btn small" href="{{ url_for('reading', slug=key) }}">Use this spread</a></p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

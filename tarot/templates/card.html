@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block head %}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Article",
+ "headline":{{ title | tojson }},
+ "description":{{ description | tojson }},
+ "about":{"@type":"Thing","name":{{ card.name | tojson }}},
+ "publisher":{"@type":"Organization","name":{{ site_name | tojson }}}}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+ {"@type":"ListItem","position":1,"name":"Home","item":"{{ site_url }}{{ url_for('home') }}"},
+ {"@type":"ListItem","position":2,"name":"The Deck","item":"{{ site_url }}{{ url_for('cards_index') }}"},
+ {"@type":"ListItem","position":3,"name":{{ card.name | tojson }},"item":"{{ site_url }}{{ url_for('card_page', slug=card.slug) }}"}]}
+</script>
+{% endblock %}
+{% block body %}
+<div class="wrap">
+  <p class="crumbs">
+    <a href="{{ url_for('home') }}">Home</a><span>/</span>
+    <a href="{{ url_for('cards_index') }}">The Deck</a><span>/</span>{{ card.name }}
+  </p>
+</div>
+
+<section class="card-page">
+  <div class="wrap card-layout">
+
+    <aside class="card-aside">
+      <div id="cardArtUp">{{ card_svg(card) | safe }}</div>
+      <div id="cardArtRev" class="hidden">{{ card_svg(card, true) | safe }}</div>
+      <div class="flipper">
+        <button type="button" id="showUp" aria-pressed="true">Upright</button>
+        <button type="button" id="showRev" aria-pressed="false">Reversed</button>
+      </div>
+      <dl class="facts">
+        <div><dt>Arcana</dt><dd>{{ 'Major' if card.arcana == 'major' else 'Minor' }}</dd></div>
+        {% if card.suit %}<div><dt>Suit</dt><dd>{{ suits[card.suit].name }}</dd></div>{% endif %}
+        <div><dt>Number</dt><dd>{{ card.roman }}</dd></div>
+        <div><dt>Element</dt><dd>{{ card.element }}</dd></div>
+        <div><dt>{{ 'Astrology' if card.arcana == 'major' else 'Season' }}</dt><dd>{{ card.astrology }}</dd></div>
+        <div><dt>Yes / No</dt><dd style="text-transform:capitalize">{{ card.yesno }}</dd></div>
+      </dl>
+    </aside>
+
+    <div>
+      <div class="card-head">
+        <p class="eyebrow">{{ context_label }}</p>
+        <h1>{{ card.name }}</h1>
+        <p class="intro">{{ intro }}</p>
+      </div>
+
+      <nav class="ctx-tabs">
+        {% for key, label in contexts %}
+        <a href="{{ url_for('card_page', slug=card.slug, context=key) }}"
+           {% if key == context %}aria-current="page"{% endif %}>{{ label }}</a>
+        {% endfor %}
+      </nav>
+
+      <div class="keywords">
+        {% for k in card.up_keys %}<span class="kw">{{ k }}</span>{% endfor %}
+        {% for k in card.rev_keys %}<span class="kw rev">{{ k }} (rev)</span>{% endfor %}
+      </div>
+
+      <div class="meaning">
+        {% for heading, text in paras %}
+        <h2>{{ heading }}</h2>
+        <p>{{ text }}</p>
+        {% endfor %}
+      </div>
+
+      <div class="cta-inline">
+        <p><strong>See {{ card.name }} in a real spread.</strong> A single card meaning is a
+           definition; a reading is what it means next to the others.</p>
+        <a class="btn small" href="{{ url_for('reading', slug='three-card') }}">Draw three cards</a>
+      </div>
+
+      {% if related %}
+      <div class="suit-head" style="margin-top:44px">
+        <h2 style="font-size:22px">Read next</h2>
+        <span class="note">cards that sit close to this one</span>
+      </div>
+      <div class="deck-grid">
+        {% for c in related %}
+        <a class="deck-item" href="{{ url_for('card_page', slug=c.slug, context=context) }}">
+          {{ card_svg(c) | safe }}
+          <span class="label">{{ c.name }}</span>
+        </a>
+        {% endfor %}
+      </div>
+
+      <div class="suit-head" style="margin-top:44px">
+        <h2 style="font-size:22px">Combinations</h2>
+        <span class="note">what {{ card.name }} means alongside another card</span>
+      </div>
+      <ul style="columns:2;column-gap:36px;padding-left:20px">
+        {% for c in related %}
+        <li style="margin-bottom:6px;font-size:15.5px">
+          <a href="{{ url_for('combination', a=card.slug, b=c.slug) }}">{{ card.name }} and {{ c.name }}</a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var up = document.getElementById('cardArtUp'), rev = document.getElementById('cardArtRev');
+    var bUp = document.getElementById('showUp'), bRev = document.getElementById('showRev');
+    function set(showRev) {
+      up.classList.toggle('hidden', showRev);
+      rev.classList.toggle('hidden', !showRev);
+      bUp.setAttribute('aria-pressed', String(!showRev));
+      bRev.setAttribute('aria-pressed', String(showRev));
+    }
+    bUp.addEventListener('click', function () { set(false); });
+    bRev.addEventListener('click', function () { set(true); });
+  })();
+</script>
+{% endblock %}

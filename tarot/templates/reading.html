@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="stage">
+  <div class="wrap">
+
+    <div class="stage-head">
+      <p class="eyebrow">{{ spread.count }} card{{ 's' if spread.count > 1 else '' }}</p>
+      <h1>{{ spread.name }}</h1>
+      <p>{{ spread.blurb }}</p>
+    </div>
+
+    <form class="ask" id="askForm" autocomplete="off">
+      <label for="question">Your question <span style="text-transform:none;letter-spacing:0">(optional — the reading is sharper with one)</span></label>
+      <input type="text" id="question" name="question" maxlength="160"
+             placeholder="e.g. Should I stay in this job another year?">
+      <div class="ask-row">
+        <label class="switch"><input type="checkbox" id="reversals" checked> Include reversals</label>
+        <span class="count"><span id="qCount">0</span>/160</span>
+      </div>
+    </form>
+
+    <div class="deck-zone">
+      <div class="deck-stack" id="deckStack" role="button" tabindex="0"
+           aria-label="Shuffle and draw {{ spread.count }} cards">
+        {{ card_back() | safe }}{{ card_back() | safe }}{{ card_back() | safe }}
+      </div>
+      <button class="btn" id="drawBtn" type="button">Shuffle &amp; draw</button>
+      <p class="stage-status" id="status">The deck is cut. Draw when your question is settled.</p>
+    </div>
+
+    <div class="spread-layout hidden" id="spreadLayout"></div>
+
+    <div class="interp hidden" id="interp">
+      <h2>The reading</h2>
+      <div id="interpBody"></div>
+    </div>
+
+    <div class="reading-actions hidden" id="actions">
+      <button class="btn ghost" id="againBtn" type="button">Draw again</button>
+      <a class="btn ghost" href="{{ url_for('spreads_index') }}">Try another spread</a>
+    </div>
+
+    <div class="disclaimer">
+      <p><strong>For entertainment and reflection.</strong> A tarot reading is a structured way of
+      looking at a situation you are already in — it is not advice, and it does not predict what
+      will happen. For anything medical, legal or financial, talk to someone qualified.</p>
+    </div>
+
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.READING = {
+    spread: {{ spread.slug | tojson }},
+    count: {{ spread.count }},
+    positions: {{ spread.positions | tojson }}
+  };
+</script>
+<script src="{{ url_for('static', filename='reading.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="wrap">
+  <p class="crumbs"><a href="{{ url_for('home') }}">Home</a><span>/</span>The Deck</p>
+</div>
+
+<section class="card-page">
+  <div class="wrap">
+    <div class="band-head">
+      <p class="eyebrow">78 cards</p>
+      <h1 style="font-size:clamp(32px,5vw,50px);line-height:1.06">All tarot card meanings</h1>
+      <p>Upright and reversed, with separate readings for love, career, money, health and
+         yes-or-no questions. Twenty-two major arcana, fifty-six minor.</p>
+    </div>
+
+    <div class="suit-head">
+      <h2>Major Arcana</h2>
+      <span class="note">22 cards · the structural forces</span>
+    </div>
+    <div class="deck-grid">
+      {% for c in majors %}
+      <a class="deck-item" href="{{ url_for('card_page', slug=c.slug) }}">
+        {{ card_svg(c) | safe }}
+        <span class="label">{{ c.name }}</span>
+      </a>
+      {% endfor %}
+    </div>
+
+    {% for key, suit in suits.items() %}
+    <div class="suit-head">
+      <h2>{{ suit.name }}</h2>
+      <span class="note">{{ suit.element }} · {{ suit.domain }}</span>
+    </div>
+    <div class="deck-grid">
+      {% for c in by_suit[key] %}
+      <a class="deck-item" href="{{ url_for('card_page', slug=c.slug) }}">
+        {{ card_svg(c) | safe }}
+        <span class="label">{{ c.name }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

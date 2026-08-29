@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block head %}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"{{ site_name }}","url":"{{ site_url }}"}
+</script>
+{% endblock %}
+{% block body %}
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Free · No signup · No card limit</p>
+      <h1>A tarot reading that answers the question you actually asked.</h1>
+      <p class="lede">
+        Most free tarot sites hand you a card and a paragraph written years ago about that card in
+        general. This one reads your cards in their positions, against your question, and tells you
+        what the spread says as a whole — including the parts you might not want to hear.
+      </p>
+      <div class="hero-actions">
+        <a class="btn" href="{{ url_for('reading', slug='three-card') }}">Draw three cards</a>
+        <a class="btn ghost" href="{{ url_for('reading', slug='daily') }}">Card of the day</a>
+      </div>
+      <p class="hero-note">
+        78 cards · 6 spreads · 468 card meanings<br>
+        Nothing to install. Nothing to pay. No email required.
+      </p>
+    </div>
+    <div class="fan" aria-hidden="true">
+      {% for c in featured %}{{ card_svg(c) | safe }}{% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band tint">
+  <div class="wrap">
+    <div class="band-head">
+      <p class="eyebrow">Choose a spread</p>
+      <h2>Start with the question, not the cards.</h2>
+      <p>The spread decides what kind of answer you get. One card for a nudge, three for a trajectory, ten when the situation has layers.</p>
+    </div>
+    <div class="spread-grid">
+      {% for key, s in spreads.items() %}
+      <a class="spread-card" href="{{ url_for('reading', slug=key) }}">
+        <h3>{{ s.name }}</h3>
+        <p>{{ s.blurb }}</p>
+        <div class="foot">
+          <span class="pips" aria-hidden="true">{% for i in range(10) %}<i class="{% if i < s.count %}on{% endif %}"></i>{% endfor %}</span>
+          <span class="go">{{ s.count }} card{{ 's' if s.count > 1 else '' }} &rarr;</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="band-head">
+      <p class="eyebrow muted">What makes a reading useful</p>
+      <h2>Three things this site does differently.</h2>
+    </div>
+    <div class="spread-grid">
+      <div class="spread-card">
+        <h3>Position before card</h3>
+        <p>The Tower in <em>outcome</em> means something different from The Tower in <em>what is passing</em>. Readings here are built position-first, which is how a reader actually works.</p>
+      </div>
+      <div class="spread-card">
+        <h3>The spread as a whole</h3>
+        <p>Every reading ends by looking at the pattern — how many major arcana, which suit dominates, how much is reversed. That synthesis is usually where the answer is.</p>
+      </div>
+      <div class="spread-card">
+        <h3>An honest shuffle</h3>
+        <p>Cards are drawn with your device's cryptographic random number generator, not a seeded shuffle. It's the one mechanic you're entitled to be suspicious about, so we say plainly how it works.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band tint">
+  <div class="wrap">
+    <div class="band-head">
+      <p class="eyebrow muted">The deck</p>
+      <h2>All 78 cards, upright and reversed.</h2>
+      <p>Every card has a page for love, career, money, health and yes-or-no questions — because "what does The Moon mean" and "what does The Moon mean about my relationship" are not the same question.</p>
+    </div>
+    <a class="btn ghost" href="{{ url_for('cards_index') }}">Browse the deck</a>
+  </div>
+</section>
+
+{% endblock %}

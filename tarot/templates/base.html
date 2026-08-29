@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+<meta name="description" content="{{ description }}">
+{% if noindex %}<meta name="robots" content="noindex,follow">{% else %}<link rel="canonical" href="{{ site_url }}{{ request.path }}">{% endif %}
+<meta property="og:title" content="{{ title }}">
+<meta property="og:description" content="{{ description }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{ site_name }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Marcellus&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='%23D9A521' stroke='%231B1815' stroke-width='2'/><circle cx='16' cy='16' r='7' fill='none' stroke='%231B1815' stroke-width='2'/></svg>">
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('theme');
+      if (t) document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  })();
+</script>
+{% block head %}{% endblock %}
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap masthead-in">
+    <a class="brand" href="{{ url_for('home') }}"><span class="mark"></span>{{ site_name }}</a>
+    <nav class="nav">
+      <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}aria-current="page"{% endif %}>Reading</a>
+      <a href="{{ url_for('cards_index') }}" {% if request.endpoint in ('cards_index', 'card_page') %}aria-current="page"{% endif %}>The Deck</a>
+      <a href="{{ url_for('spreads_index') }}" {% if request.endpoint == 'spreads_index' %}aria-current="page"{% endif %}>Spreads</a>
+      <a href="{{ url_for('learn') }}" {% if request.endpoint == 'learn' %}aria-current="page"{% endif %}>Learn</a>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch colour theme">Theme</button>
+    </nav>
+  </div>
+</header>
+
+{% block body %}{% endblock %}
+
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>Readings</h4>
+        <ul>
+          {% for key, s in spreads.items() %}<li><a href="{{ url_for('reading', slug=key) }}">{{ s.name }}</a></li>{% endfor %}
+        </ul>
+      </div>
+      <div>
+        <h4>The Deck</h4>
+        <ul>
+          <li><a href="{{ url_for('cards_index') }}">All 78 cards</a></li>
+          <li><a href="{{ url_for('card_page', slug='the-fool') }}">Major arcana</a></li>
+          <li><a href="{{ url_for('card_page', slug='ace-of-cups') }}">Minor arcana</a></li>
+          <li><a href="{{ url_for('spreads_index') }}">Spreads explained</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>By Question</h4>
+        <ul>
+          {% for key, label in contexts %}{% if key != 'general' %}<li><a href="{{ url_for('card_page', slug='the-lovers', context=key) }}">{{ label }}</a></li>{% endif %}{% endfor %}
+        </ul>
+      </div>
+      <div>
+        <h4>Site</h4>
+        <ul>
+          <li><a href="{{ url_for('learn') }}">How to read tarot</a></li>
+          <li><a href="{{ url_for('legal', page='disclaimer') }}">Disclaimer</a></li>
+          <li><a href="{{ url_for('legal', page='privacy') }}">Privacy</a></li>
+          <li><a href="{{ url_for('legal', page='terms') }}">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="fine">
+      {{ site_name }} is for entertainment and self-reflection only. Readings are not advice —
+      medical, legal, financial or otherwise — and nothing here predicts the future. You must be
+      18 or older to use this site. Cards are drawn with your device's cryptographic random
+      number generator.<br>
+      &copy; {{ year }} {{ site_name }}. Card artwork drawn for this site.
+    </p>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

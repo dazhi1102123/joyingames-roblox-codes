@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="wrap">
+  <p class="crumbs"><a href="{{ url_for('home') }}">Home</a><span>/</span>{{ heading }}</p>
+</div>
+
+<section class="prose narrow">
+  <p class="eyebrow">{{ heading }}</p>
+
+  {% if page == 'disclaimer' %}
+  <h1>Disclaimer</h1>
+  <p><strong>{{ site_name }} is provided for entertainment and personal reflection only.</strong>
+     Tarot readings on this site are generated content. They are not, and must not be treated as,
+     professional advice of any kind.</p>
+
+  <h2>Not advice</h2>
+  <p>Nothing on this site is medical, psychological, legal, financial or investment advice. No
+     reading diagnoses a condition, predicts a legal outcome, or forecasts the performance of any
+     asset. If you are facing a decision in any of those areas, consult someone qualified and
+     regulated to advise on it.</p>
+
+  <h2>No prediction</h2>
+  <p>Readings describe a way of looking at a situation. They do not predict future events, and no
+     outcome is guaranteed, implied or warranted. You remain solely responsible for your own
+     decisions and their consequences.</p>
+
+  <h2>Age</h2>
+  <p>You must be 18 or older to use this site.</p>
+
+  <h2>In an emergency</h2>
+  <p>If you are in crisis or considering harming yourself, please contact your local emergency
+     services or a crisis line in your country. This site cannot help with that and is not a
+     substitute for a person who can.</p>
+
+  <h2>How cards are drawn</h2>
+  <p>Cards are selected using your device's cryptographic random number generator
+     (<code>secrets</code> on the server). There is no seeding, no weighting, and no adjustment
+     based on your question or history.</p>
+
+  {% elif page == 'privacy' %}
+  <h1>Privacy</h1>
+  <p class="mono-note">[TEMPLATE — must be reviewed by counsel and completed with your operating
+     entity's details before launch.]</p>
+
+  <h2>What this site collects</h2>
+  <p>In its current form {{ site_name }} does not require an account and does not store your
+     readings on the server. A question you type is sent to the server to generate the reading and
+     is not retained after the response is produced.</p>
+
+  <h2>Local storage</h2>
+  <p>Your colour theme preference and your recent readings are kept in your own browser's local
+     storage. They never leave your device and are not readable by us. Clearing your browser data
+     removes them.</p>
+
+  <h2>Third parties</h2>
+  <p>Reading interpretations may be generated using a third-party language model provider. The
+     text of your question and the cards drawn are transmitted to that provider for that purpose.
+     [Name the provider and link its privacy terms here.]</p>
+
+  <h2>Your rights</h2>
+  <p>If you are in the EEA or UK you have rights of access, rectification, erasure, restriction,
+     portability and objection under the GDPR. [Insert controller identity, contact address, legal
+     bases, retention periods and supervisory authority.]</p>
+
+  {% else %}
+  <h1>Terms of Use</h1>
+  <p class="mono-note">[TEMPLATE — must be reviewed by counsel and completed with your operating
+     entity's details before launch.]</p>
+
+  <h2>Acceptance</h2>
+  <p>By using {{ site_name }} you agree to these terms and to the
+     <a href="{{ url_for('legal', page='disclaimer') }}">disclaimer</a>. If you do not agree, do
+     not use the site.</p>
+
+  <h2>Eligibility</h2>
+  <p>You must be at least 18 years old.</p>
+
+  <h2>Nature of the service</h2>
+  <p>{{ site_name }} provides entertainment content. It makes no warranty that any reading is
+     accurate, complete or fit for any purpose, and expressly disclaims liability for decisions
+     taken in reliance on it, to the fullest extent permitted by law.</p>
+
+  <h2>Acceptable use</h2>
+  <p>You may not scrape the site at scale, resell its content, or use it to provide paid readings
+     to third parties without written permission. Card artwork on this site was drawn for it and
+     is not in the public domain.</p>
+
+  <h2>Paid features</h2>
+  <p>[When paid features launch: state pricing, billing cycle, cancellation, refund policy, and —
+     for EU consumers — the express waiver of the 14-day withdrawal right for digital content
+     supplied immediately, which must be collected as an explicit checkbox at checkout.]</p>
+
+  <h2>Operator</h2>
+  <p class="mono-note">[Insert legal entity name, registered address, company number, VAT ID and
+     contact email. In Germany this is the Impressum and it is mandatory.]</p>
+  {% endif %}
+
+  <p class="mono-note" style="margin-top:40px">Last updated: {{ year }}</p>
+</section>
+{% endblock %}

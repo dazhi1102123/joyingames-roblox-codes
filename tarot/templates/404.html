@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="prose narrow center" style="padding-top:90px">
+  <p class="eyebrow">404</p>
+  <h1>That card isn't in this deck.</h1>
+  <p style="color:var(--ink-2)">The page you asked for does not exist. The deck, however, does.</p>
+  <p style="margin-top:28px">
+    <a class="btn" href="{{ url_for('cards_index') }}">Browse all 78 cards</a>
+  </p>
+</section>
+{% endblock %}

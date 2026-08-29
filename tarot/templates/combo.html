@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="wrap">
+  <p class="crumbs">
+    <a href="{{ url_for('home') }}">Home</a><span>/</span>
+    <a href="{{ url_for('cards_index') }}">The Deck</a><span>/</span>Combination
+  </p>
+</div>
+
+<section class="prose narrow">
+  <p class="eyebrow">Card combination</p>
+  <h1>{{ a.name }} and {{ b.name }}</h1>
+
+  <div class="combo-pair">
+    {{ card_svg(a) | safe }}
+    <div class="plus">&plus;</div>
+    {{ card_svg(b) | safe }}
+  </div>
+
+  <h2>What the pair says</h2>
+  <p>{{ shared }}</p>
+  <p>{{ tension }}</p>
+
+  <h2>{{ a.name }} in the pair</h2>
+  <p>{{ a.up }}</p>
+  <p class="mono-note">Upright: {{ a.up_keys | join(' · ') }} &nbsp;|&nbsp; Reversed: {{ a.rev_keys | join(' · ') }}</p>
+
+  <h2>{{ b.name }} in the pair</h2>
+  <p>{{ b.up }}</p>
+  <p class="mono-note">Upright: {{ b.up_keys | join(' · ') }} &nbsp;|&nbsp; Reversed: {{ b.rev_keys | join(' · ') }}</p>
+
+  <h2>If either card is reversed</h2>
+  <p><strong>{{ a.name }} reversed:</strong> {{ a.rev }}</p>
+  <p><strong>{{ b.name }} reversed:</strong> {{ b.rev }}</p>
+  <p>Two reversals together rarely mean twice the trouble. More often the pair describes energy
+     that is present but held inside — the situation is stalled rather than absent.</p>
+
+  <div class="cta-inline">
+    <p><strong>Draw your own pair.</strong> A combination page is a definition. A reading puts
+       the cards in positions, which is where the meaning actually comes from.</p>
+    <a class="btn small" href="{{ url_for('reading', slug='three-card') }}">Draw cards</a>
+  </div>
+
+  <h2>Read each card on its own</h2>
+  <ul>
+    <li><a href="{{ url_for('card_page', slug=a.slug) }}">{{ a.name }} — full meaning</a></li>
+    <li><a href="{{ url_for('card_page', slug=b.slug) }}">{{ b.name }} — full meaning</a></li>
+    <li><a href="{{ url_for('combination', a=b.slug, b=a.slug) }}">{{ b.name }} and {{ a.name }}</a> — the same pair, read from the other side</li>
+  </ul>
+</section>
+{% endblock %}
