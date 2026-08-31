@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="wrap"><p class="crumbs"><a href="{{ url_for('home') }}">Home</a><span>/</span>Report</p></div>
+
+<section class="card-page">
+  <div class="narrow">
+    <p class="eyebrow">Written report</p>
+    <h1 style="font-size:clamp(32px,5vw,50px);line-height:1.06">Tell me what's going on first.</h1>
+    <p style="color:var(--ink-2);font-size:18px;margin-top:16px">
+      A card drawn against no question gives you a definition. A card drawn against
+      <em>your</em> question gives you a reading. Four answers below, then a full written
+      report — the spread, each position, what the shape of it means, and the colour and
+      stone the tradition attaches to your closing card.
+    </p>
+
+    <form class="intake" method="post" action="{{ url_for('report_result') }}">
+
+      <fieldset class="step">
+        <legend><span class="n">1</span> What is this about?</legend>
+        <div class="focus-grid">
+          {% for key, label, spread, hint in focus_areas %}
+          <label class="focus">
+            <input type="radio" name="focus" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+            <span class="box">
+              <span class="lbl">{{ label }}</span>
+              <span class="hint">{{ hint }}</span>
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <fieldset class="step">
+        <legend><span class="n">2</span> What is actually happening?</legend>
+        <p class="help">In your own words. The more specific you are, the less generic the
+           report can be — "my manager keeps reassigning my work" beats "career stuff".</p>
+        <textarea name="situation" rows="4" maxlength="{{ situation_max }}"
+                  placeholder="I've been offered a role at a smaller company. Better title, less money, and I don't know if I'm running toward it or away from where I am."></textarea>
+      </fieldset>
+
+      <fieldset class="step">
+        <legend><span class="n">3</span> What have you already tried?</legend>
+        <p class="help">Optional, and the most useful field on this page. Knowing what has
+           already failed keeps the report from suggesting it.</p>
+        <textarea name="tried" rows="3" maxlength="{{ situation_max }}"
+                  placeholder="Made a pros and cons list twice. Talked to two friends who disagreed with each other."></textarea>
+      </fieldset>
+
+      <fieldset class="step">
+        <legend><span class="n">4</span> Your birth date</legend>
+        <p class="help">Optional. Adds your birth card to the report — the one card the
+           tradition assigns to you permanently rather than by draw.</p>
+        <div class="birth-fields">
+          <label>Month
+            <select name="bm">
+              <option value="">—</option>
+              {% for i in range(1, 13) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>Day
+            <select name="bd">
+              <option value="">—</option>
+              {% for i in range(1, 32) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+            </select>
+          </label>
+          <label>Year
+            <select name="by">
+              <option value="">—</option>
+              {% for y in range(2020, 1939, -1) %}<option value="{{ y }}">{{ y }}</option>{% endfor %}
+            </select>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="intake-foot">
+        <button class="btn" type="submit">Draw and write my report</button>
+        <p class="mono-note">Free · no account · nothing you type is stored on our server</p>
+      </div>
+    </form>
+
+    <div class="disclaimer">
+      <p><strong>For entertainment and reflection.</strong> A report describes a way of looking
+      at a situation you are already in. It is not advice — medical, legal or financial — and
+      it does not predict what will happen.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

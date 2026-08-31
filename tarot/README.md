@@ -27,6 +27,9 @@ That's the whole setup. No API key needed — see *Interpretation* below.
 | **Your deck** | Pattern read across your own reading history: recurring cards, suit balance, reversal rate. Entirely client-side. |
 | **Share links** | A reading packs into a 6–15 character URL. Deterministic, so the link always renders the same draw. |
 | **Card of the day** | Deterministic per date — stable across reloads, devices and the whole audience. |
+| **Written report** | Intake form (area, situation, what you already tried, birth date) then a full report drawn against what you described. |
+| **Correspondences** | Colour, stone and metal for all 78 cards, derived from planetary/zodiacal attribution and suit element — the content a daily brief and a physical product both need. |
+| **Daily brief** | `/daily` renders exactly what a daily email would contain, so the content engine can be reviewed before any send channel exists. |
 | **Crawl surface** | Sharded sitemap, robots.txt, canonical tags, `noindex` on the interactive routes. |
 
 ## What's deliberately *not* here
@@ -41,7 +44,12 @@ each one depends on a decision that hasn't been made yet:
 - **Accounts** need the legal entity decision, because the privacy policy,
   the data-controller identity and the retention rules follow from it.
 - **Email** needs the transactional/marketing split set up as two isolated
-  services on separate domains.
+  services on separate domains. The *content* for a daily send is built and
+  reviewable at `/daily`; only the channel is missing.
+- **Email capture on the report** is deliberately absent. Storing an address makes
+  you a data controller, and doing that before the operating entity and privacy
+  policy exist is the wrong order. The report page has the slot; nothing fills it
+  yet, and nothing the visitor types is persisted.
 
 `/my-deck` deliberately works without an account — history lives in the visitor's
 browser. That is the right default for a cold-start product, and it is also the
@@ -56,6 +64,7 @@ why they're built first.
 
 ```
 app.py           routes, draw mechanics, interpretation, sitemap
+correspondences.py  colour / stone / metal per card, and the "what to watch" line
 tarot_data.py    78 cards, 6 spreads, contexts — the single source of truth
 cardart.py       SVG card faces (22 major emblems, 4 suit glyphs, pip layouts)
 personal.py      birth cards, share codec, card of the day
@@ -106,6 +115,27 @@ that missing layer:
    history gets richer with use.
 3. **Share links** (`/r/<code>`) — a reading survives as an object someone else can
    open, without requiring either party to have an account.
+
+## The claims boundary
+
+`correspondences.py` attaches a colour and a stone to every card. That content
+exists so a daily brief has something concrete to say and so a physical product
+has a defensible reason to sit next to a reading. It creates a line that the copy
+must not cross:
+
+> Correspondences are **traditional associations, not remedies**. Write "the stone
+> associated with this card"; never "wear this to attract", "this protects you
+> from", or anything implying a colour or an object changes an outcome.
+
+This is not only editorial taste. Efficacy claims attached to a sold object are
+misleading-advertising exposure (in Germany, §5 UWG on top of the §7 email rules),
+and they are exactly the pattern that gets a merchant account reviewed. The
+constant `correspondences.SAFE_FRAMING` states the rule in code so it travels with
+the module; every template that renders a stone also renders the disclaimer.
+
+The same boundary applies to "what to watch": it is composed from the card's own
+reversed keywords — the failure mode of its upright meaning — and phrased as an
+observation. It never predicts an event.
 
 ## Staging the combination pages
 

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="card-page">
+  <div class="narrow">
+    <p class="eyebrow">Your report &middot; {{ focus_label }}</p>
+    <h1 style="font-size:clamp(30px,4.4vw,44px);line-height:1.08">
+      {{ spread.name }}, drawn for what you described.
+    </h1>
+
+    {% if situation %}
+    <blockquote class="asked">
+      <span class="k">You said</span>
+      <p>{{ situation }}</p>
+      {% if tried %}<p class="tried"><span class="k">Already tried</span> {{ tried }}</p>{% endif %}
+    </blockquote>
+    {% endif %}
+  </div>
+
+  <div class="wrap">
+    <div class="spread-layout" style="margin:36px 0 8px">
+      {% for e in cards %}
+      <div class="drawn revealed" style="animation-delay:{{ loop.index0 * 0.07 }}s">
+        <div class="pos">{{ e.position }}</div>
+        <div class="flip" style="transform:none">{{ e.svg | safe }}</div>
+        <div class="name">
+          <a href="{{ url_for('card_page', slug=e.card.slug) }}">{{ e.card.name }}</a>
+          {% if e.reversed %}<br><span class="rev">Reversed</span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="narrow">
+    <div class="interp">
+      <h2>The reading</h2>
+      {% for para in paras %}<p>{{ para | md | safe }}</p>{% endfor %}
+    </div>
+
+    <div class="palette">
+      <div class="swatch" style="--sw: {{ brief.hex }}" aria-hidden="true"></div>
+      <div>
+        <p class="eyebrow">Your closing card &middot; {{ anchor.card.name }}</p>
+        <h2 style="font-size:24px">{{ brief.colour }}</h2>
+        <dl class="corr">
+          <div><dt>Colour</dt><dd>{{ brief.colour }} <code>{{ brief.hex }}</code></dd></div>
+          <div><dt>Stone</dt><dd>{{ brief.stone }}</dd></div>
+          <div><dt>Metal</dt><dd>{{ brief.metal }}</dd></div>
+          <div><dt>Derived from</dt><dd>{{ brief.source }}</dd></div>
+        </dl>
+        <p class="mono-note" style="margin-top:14px">
+          These are traditional associations, not remedies. A stone is a reminder of a card,
+          not a mechanism.
+        </p>
+      </div>
+    </div>
+
+    <div class="watch">
+      <p class="eyebrow">What to watch</p>
+      <p>{{ brief.watch }}</p>
+    </div>
+
+    {% if birth %}
+    <div class="interp" style="border-top-width:1px">
+      <h2>Your birth card</h2>
+      <div class="birth-cards" style="margin-bottom:22px">
+        <figure>
+          {{ card_svg(birth.personality) | safe }}
+          <figcaption>
+            <span class="role">{{ 'Birth card' if birth.same else 'Personality' }}</span>
+            <a href="{{ url_for('card_page', slug=birth.personality.slug) }}">{{ birth.personality.name }}</a>
+          </figcaption>
+        </figure>
+        {% if not birth.same %}
+        <figure>
+          {{ card_svg(birth.soul) | safe }}
+          <figcaption>
+            <span class="role">Soul</span>
+            <a href="{{ url_for('card_page', slug=birth.soul.slug) }}">{{ birth.soul.name }}</a>
+          </figcaption>
+        </figure>
+        {% endif %}
+        <figure>
+          {{ card_svg(birth.year_card) | safe }}
+          <figcaption>
+            <span class="role">{{ year }}</span>
+            <a href="{{ url_for('card_page', slug=birth.year_card.slug) }}">{{ birth.year_card.name }}</a>
+          </figcaption>
+        </figure>
+      </div>
+      <p>Born {{ birth.label }}. <strong>{{ birth.personality.name }}</strong> is the register you
+         tend to work in, whatever any single draw says. {{ birth.personality.up }}</p>
+    </div>
+    {% endif %}
+
+    <div class="reading-actions" style="justify-content:flex-start">
+      <a class="btn" href="{{ share }}">Open the shareable version</a>
+      <a class="btn ghost" href="{{ url_for('report_form') }}">Write another report</a>
+    </div>
+
+    <div class="disclaimer">
+      <p><strong>Nothing here was stored.</strong> What you typed was used to write this page and
+      was not saved. The shareable link contains only the cards drawn — not your question.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

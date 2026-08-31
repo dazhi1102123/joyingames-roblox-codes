@@ -33,6 +33,7 @@ from flask import (
 from markupsafe import escape
 
 import cardart
+import correspondences
 import personal
 from tarot_data import (
     CARDS,
@@ -737,6 +738,124 @@ def shared_reading(code):
 
 
 # ---------------------------------------------------------------------------
+# Routes — intake and report
+#
+# The free tool answers a question the visitor already knows how to ask. The
+# report asks first, which is a different funnel: it earns the right to say
+# something specific, and it is the natural place an email would be exchanged
+# once there is somewhere lawful to put one.
+# ---------------------------------------------------------------------------
+
+FOCUS_AREAS = [
+    ("love", "Love & relationships", "relationship",
+     "Someone specific, or the pattern across several."),
+    ("career", "Work & direction", "situation",
+     "A role, a move, or the question of whether to stay."),
+    ("money", "Money & security", "situation",
+     "Not a forecast — the shape of your relationship to it."),
+    ("decision", "A decision", "situation",
+     "Two options, or one you keep not making."),
+    ("general", "Something else", "three-card",
+     "No category. Say it in your own words."),
+]
+FOCUS_BY_KEY = {f[0]: f for f in FOCUS_AREAS}
+
+SITUATION_MAX = 400
+
+
+@app.get("/report")
+def report_form():
+    return render_template(
+        "report.html",
+        focus_areas=FOCUS_AREAS,
+        situation_max=SITUATION_MAX,
+        title=f"Get a Written Tarot Report — {app.config['SITE_NAME']}",
+        description=(
+            "Answer four questions and get a full written tarot report: a spread "
+            "drawn for your situation, read position by position, with your card's "
+            "colour and stone."
+        ),
+    )
+
+
+@app.post("/report")
+def report_result():
+    form = request.form
+    focus_key = form.get("focus", "general")
+    if focus_key not in FOCUS_BY_KEY:
+        focus_key = "general"
+    _, focus_label, spread_slug, _ = FOCUS_BY_KEY[focus_key]
+    spread = SPREADS[spread_slug]
+
+    situation = " ".join((form.get("situation") or "").split())[:SITUATION_MAX]
+    tried = " ".join((form.get("tried") or "").split())[:SITUATION_MAX]
+
+    drawn = draw_cards(spread["count"])
+    cards = hydrate(drawn, spread)
+    paras = compose_reading(cards, spread, situation)
+
+    # The palette comes from the card carrying the most weight in the spread:
+    # the last position for a linear spread, which is where it lands.
+    anchor = cards[-1]
+    brief = correspondences.brief_for(anchor["card"], anchor["reversed"])
+
+    birth = None
+    try:
+        y, m, d = int(form["by"]), int(form["bm"]), int(form["bd"])
+        if y in personal.YEAR_RANGE and 1 <= m <= 12 and 1 <= d <= personal.MONTH_DAYS[m]:
+            p_card, s_card = personal.birth_cards(y, m, d)
+            birth = {
+                "label": f"{personal.MONTH_NAME[m]} {d}, {y}",
+                "personality": p_card,
+                "soul": s_card,
+                "same": p_card["slug"] == s_card["slug"],
+                "year_card": personal.year_card(date.today().year, m, d),
+            }
+    except (KeyError, ValueError):
+        birth = None
+
+    return render_template(
+        "report_result.html",
+        noindex=True,
+        focus_label=focus_label,
+        situation=situation,
+        tried=tried,
+        spread=spread,
+        cards=cards,
+        paras=paras,
+        brief=brief,
+        anchor=anchor,
+        birth=birth,
+        share=url_for("shared_reading",
+                      code=personal.encode_reading(spread["slug"], drawn)),
+        title=f"Your {spread['name']} report — {app.config['SITE_NAME']}",
+        description="A written tarot report drawn for your situation.",
+    )
+
+
+@app.route("/daily")
+def daily():
+    """What a daily brief contains, rendered as a page.
+
+    The send channel does not exist yet — that needs the ESP and the operating
+    entity settled. The content engine does, and this route is how it gets
+    reviewed before a single message goes out.
+    """
+    today, today_rev = personal.card_of_the_day()
+    brief = correspondences.brief_for(today, today_rev, variant=date.today().day)
+    return render_template(
+        "daily.html",
+        brief=brief,
+        today=date.today(),
+        title=f"Today's Card — {app.config['SITE_NAME']}",
+        description=(
+            "Today's tarot card with its traditional colour and stone, what the "
+            "card is about, and the failure mode worth watching."
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Crawl surface
 # ---------------------------------------------------------------------------
 
@@ -755,6 +874,8 @@ def _sitemap_urls():
         (url_for("spreads_index"), "0.7"),
         (url_for("learn"), "0.6"),
         (url_for("birth_card"), "0.9"),
+        (url_for("report_form"), "0.9"),
+        (url_for("daily"), "0.8"),
     ]
     urls += [(url_for("birth_date_page", slug=s), "0.7") for s in personal.all_date_slugs()]
     urls += [(url_for("reading", slug=s), "0.8") for s in SPREADS]

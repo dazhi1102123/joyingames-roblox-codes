@@ -34,6 +34,8 @@
       <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}aria-current="page"{% endif %}>Reading</a>
       <a href="{{ url_for('cards_index') }}" {% if request.endpoint in ('cards_index', 'card_page') %}aria-current="page"{% endif %}>The Deck</a>
       <a href="{{ url_for('spreads_index') }}" {% if request.endpoint == 'spreads_index' %}aria-current="page"{% endif %}>Spreads</a>
+      <a href="{{ url_for('report_form') }}" {% if request.endpoint in ('report_form', 'report_result') %}aria-current="page"{% endif %}>Report</a>
+      <a href="{{ url_for('daily') }}" {% if request.endpoint == 'daily' %}aria-current="page"{% endif %}>Today</a>
       <a href="{{ url_for('birth_card') }}" {% if request.endpoint in ('birth_card', 'birth_date_page') %}aria-current="page"{% endif %}>Birth Card</a>
       <a href="{{ url_for('my_deck') }}" {% if request.endpoint == 'my_deck' %}aria-current="page"{% endif %}>Your Deck</a>
       <a href="{{ url_for('learn') }}" {% if request.endpoint == 'learn' %}aria-current="page"{% endif %}>Learn</a>
@@ -60,6 +62,8 @@
           <li><a href="{{ url_for('card_page', slug='the-fool') }}">Major arcana</a></li>
           <li><a href="{{ url_for('card_page', slug='ace-of-cups') }}">Minor arcana</a></li>
           <li><a href="{{ url_for('spreads_index') }}">Spreads explained</a></li>
+          <li><a href="{{ url_for('report_form') }}">Written report</a></li>
+          <li><a href="{{ url_for('daily') }}">Today's card</a></li>
           <li><a href="{{ url_for('birth_card') }}">Find your birth card</a></li>
           <li><a href="{{ url_for('my_deck') }}">Your reading history</a></li>
         </ul>

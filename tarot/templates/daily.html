@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="wrap"><p class="crumbs"><a href="{{ url_for('home') }}">Home</a><span>/</span>Today</p></div>
+
+<section class="card-page">
+  <div class="narrow">
+    <p class="eyebrow">{{ today.strftime('%A, %-d %B %Y') }}</p>
+    <h1 style="font-size:clamp(30px,4.6vw,46px);line-height:1.08">
+      {{ brief.card.name }}{% if brief.reversed %}, reversed{% endif %}
+    </h1>
+
+    <div class="daily-grid">
+      <div>{{ card_svg(brief.card, brief.reversed) | safe }}</div>
+      <div>
+        <p style="font-size:18px">{{ brief.body }}</p>
+        <div class="keywords">
+          {% for k in brief.keywords %}<span class="kw">{{ k }}</span>{% endfor %}
+        </div>
+        <div class="palette compact">
+          <div class="swatch" style="--sw: {{ brief.hex }}" aria-hidden="true"></div>
+          <dl class="corr">
+            <div><dt>Colour</dt><dd>{{ brief.colour }}</dd></div>
+            <div><dt>Stone</dt><dd>{{ brief.stone }}</dd></div>
+            <div><dt>Metal</dt><dd>{{ brief.metal }}</dd></div>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="watch">
+      <p class="eyebrow">What to watch</p>
+      <p>{{ brief.watch }}</p>
+    </div>
+
+    <div class="cta-inline">
+      <p><strong>Today's card is the same for everyone.</strong> A card drawn against your own
+         question is not.</p>
+      <a class="btn small" href="{{ url_for('report_form') }}">Draw for my situation</a>
+    </div>
+
+    <p class="mono-note">
+      The same card for every visitor today &middot; changes at midnight &middot;
+      correspondences are traditional associations, not remedies
+    </p>
+  </div>
+</section>
+{% endblock %}
