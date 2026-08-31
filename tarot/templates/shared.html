@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="stage">
+  <div class="wrap">
+    <div class="stage-head">
+      <p class="eyebrow">A shared reading</p>
+      <h1>{{ spread.name }}</h1>
+      <p>Someone drew these cards and sent them to you. The link always shows the same draw.</p>
+    </div>
+
+    <div class="spread-layout">
+      {% for e in cards %}
+      <div class="drawn revealed" style="animation-delay:{{ loop.index0 * 0.07 }}s">
+        <div class="pos">{{ e.position }}</div>
+        <div class="flip" style="transform:none">{{ e.svg | safe }}</div>
+        <div class="name">
+          <a href="{{ url_for('card_page', slug=e.card.slug) }}">{{ e.card.name }}</a>
+          {% if e.reversed %}<br><span class="rev">Reversed</span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="interp">
+      <h2>The reading</h2>
+      {% for para in paras %}<p>{{ para | md | safe }}</p>{% endfor %}
+    </div>
+
+    <div class="reading-actions">
+      <a class="btn" href="{{ url_for('reading', slug=spread.slug) }}">Draw your own {{ spread.name }}</a>
+      <a class="btn ghost" href="{{ url_for('cards_index') }}">Browse the deck</a>
+    </div>
+
+    <div class="disclaimer">
+      <p><strong>For entertainment and reflection.</strong> A tarot reading is a structured way of
+      looking at a situation you are already in — it is not advice, and it does not predict what
+      will happen.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

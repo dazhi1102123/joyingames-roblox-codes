@@ -609,3 +609,119 @@ img, svg { max-width: 100%; }
   }
   .drawn .flip { transition: none; }
 }
+
+/* ==========================================================================
+   Card of the day
+   ========================================================================== */
+
+.today-band { background: var(--surface); }
+.today-grid { display: grid; gap: 30px; align-items: center; }
+@media (min-width: 720px) { .today-grid { grid-template-columns: 176px minmax(0, 1fr); gap: 42px; } }
+.today-card .cardface { width: 176px; filter: drop-shadow(0 6px 16px var(--shadow)); border-radius: 7px; }
+
+/* ==========================================================================
+   Birth card
+   ========================================================================== */
+
+.birth-form {
+  border: 1px solid var(--rule-hard);
+  background: var(--surface);
+  padding: 24px 26px;
+  border-radius: var(--radius);
+  margin-bottom: 40px;
+}
+.birth-fields { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+.birth-fields label {
+  display: flex; flex-direction: column; gap: 7px;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.birth-fields select {
+  font-family: var(--body); font-size: 16px;
+  padding: 11px 13px; min-width: 118px;
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--rule-hard); border-radius: var(--radius);
+}
+.birth-fields select:focus { border-color: var(--ink); outline: none; }
+.birth-fields .btn { height: 46px; }
+
+.birth-cards { display: flex; gap: 26px; flex-wrap: wrap; }
+.birth-cards figure { margin: 0; width: 168px; display: flex; flex-direction: column; gap: 12px; }
+.birth-cards .cardface { filter: drop-shadow(0 6px 16px var(--shadow)); border-radius: 7px; }
+.birth-cards figcaption { display: flex; flex-direction: column; gap: 4px; text-align: center; }
+.birth-cards .role {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--accent);
+}
+.birth-cards figcaption a { font-family: var(--disp); font-size: 17px; color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule-hard); align-self: center; }
+.birth-cards figcaption a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+.birth-result { border-top: 2px solid var(--ink); padding-top: 32px; }
+
+.year-table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 560px; }
+.year-table th, .year-table td { text-align: left; padding: 10px 16px 10px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.year-table th {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.11em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 500; white-space: nowrap;
+}
+.year-table td.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; padding-right: 0; }
+.year-table .years { font-family: var(--mono); font-size: 13px; color: var(--ink-2); line-height: 1.65; }
+.year-table .same { color: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+.year-table td a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule-hard); }
+.year-table td a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ==========================================================================
+   Your deck
+   ========================================================================== */
+
+.note-block { border: 1px solid var(--rule-hard); background: var(--surface); padding: 26px 28px; border-radius: var(--radius); max-width: var(--measure); }
+.note-block p { margin: 0; }
+
+.stat-row { display: grid; gap: 1px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); background: var(--rule); border: 1px solid var(--rule); margin-bottom: 14px; }
+.stat { background: var(--paper); padding: 20px 22px; display: flex; flex-direction: column; gap: 5px; }
+.stat .v { font-family: var(--disp); font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-3); }
+
+.deck-item.repeat { position: relative; }
+.deck-item.repeat .tally {
+  font-family: var(--disp); font-size: 30px; color: var(--accent);
+  border: 1px solid var(--rule-hard); background: var(--surface);
+  width: 100%; aspect-ratio: 300 / 520; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.suit-bars { display: flex; flex-direction: column; gap: 10px; max-width: 560px; }
+.suit-bar { display: grid; grid-template-columns: 92px minmax(0, 1fr) 46px; gap: 14px; align-items: center; }
+.suit-bar .nm { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-2); }
+.suit-bar .track { height: 12px; background: var(--surface-2); display: block; }
+.suit-bar .track span { display: block; height: 100%; background: var(--c-slate); transition: width 0.5s ease; }
+.suit-bar.suit-wands .track span { background: var(--c-red); }
+.suit-bar.suit-cups .track span { background: var(--c-blue); }
+.suit-bar.suit-swords .track span { background: var(--c-slate); }
+.suit-bar.suit-pentacles .track span { background: var(--c-green); }
+.suit-bar .pc { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-3); text-align: right; }
+
+.history { border-top: 1px solid var(--rule-hard); max-width: var(--measure); }
+.history .entry { display: grid; gap: 4px 20px; padding: 13px 0; border-bottom: 1px solid var(--rule); }
+@media (min-width: 620px) { .history .entry { grid-template-columns: 116px minmax(0, 1fr); } }
+.history .when { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); padding-top: 3px; }
+.history .what { font-size: 15px; line-height: 1.6; }
+.history .what a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule); }
+.history .what a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.history .r { font-family: var(--mono); font-size: 10px; color: var(--c-red); letter-spacing: 0.08em; text-transform: uppercase; }
+.history .q { font-family: var(--disp); font-style: italic; color: var(--ink-2); margin-top: 5px; font-size: 15px; }
+
+.deck-item.repeat .art { position: relative; display: block; width: 100%; }
+.deck-item.repeat .art .cardface {
+  width: 100%; display: block; border-radius: 5px;
+  filter: drop-shadow(0 2px 6px var(--shadow));
+  transition: transform 0.16s ease;
+}
+.deck-item.repeat:hover .art .cardface { transform: translateY(-5px); }
+.deck-item.repeat .tally-badge {
+  position: absolute; top: 7px; right: 7px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
+  background: var(--card-line); color: var(--card-face);
+  padding: 2px 7px; border-radius: 2px;
+}
+.deck-item.repeat.has-art .label { color: var(--ink-2); }

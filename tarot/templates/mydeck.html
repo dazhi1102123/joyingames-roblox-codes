@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="wrap"><p class="crumbs"><a href="{{ url_for('home') }}">Home</a><span>/</span>Your Deck</p></div>
+
+<section class="card-page">
+  <div class="wrap">
+    <div class="band-head">
+      <p class="eyebrow">Your history</p>
+      <h1 style="font-size:clamp(32px,5vw,50px);line-height:1.06">Your deck</h1>
+      <p>A single reading is a snapshot. Twenty readings are data. This page looks across
+         everything you have drawn on this device — which cards keep coming back, which suit
+         dominates, how much of it is reversed.</p>
+    </div>
+
+    <div id="empty" class="hidden">
+      <div class="note-block">
+        <p><strong>No readings yet on this device.</strong> Draw a few and this page fills in.
+           Nothing is sent anywhere — your history is stored in your own browser and is not
+           readable by us.</p>
+        <p style="margin-top:16px"><a class="btn small" href="{{ url_for('reading', slug='three-card') }}">Draw three cards</a></p>
+      </div>
+    </div>
+
+    <div id="deckStats" class="hidden">
+      <div class="stat-row" id="statRow"></div>
+
+      <div class="suit-head"><h2>What keeps coming back</h2><span class="note">cards drawn more than once</span></div>
+      <div class="deck-grid" id="recurring"></div>
+      <p id="noRecurring" class="mono-note hidden">Nothing has repeated yet. With a small history that is exactly what you would expect.</p>
+
+      <div class="suit-head"><h2>Suit balance</h2><span class="note">where your readings sit</span></div>
+      <div class="suit-bars" id="suitBars"></div>
+      <p class="mono-note" id="suitNote" style="margin-top:14px"></p>
+
+      <div class="suit-head"><h2>Recent readings</h2><span class="note">most recent first</span></div>
+      <div class="history" id="history"></div>
+
+      <div class="reading-actions" style="justify-content:flex-start">
+        <a class="btn" href="{{ url_for('reading', slug='three-card') }}">Draw again</a>
+        <button class="btn ghost" id="clearBtn" type="button">Clear history</button>
+      </div>
+    </div>
+
+    <div class="disclaimer" style="margin-top:52px">
+      <p><strong>This lives in your browser, not on our server.</strong> Clearing your browser data
+         removes it, and it does not follow you to another device. Patterns here reflect a random
+         draw — a card repeating is not a message, it is what randomness looks like up close.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>window.CARD_URL = "{{ url_for('card_page', slug='SLUG') }}";</script>
+<script src="{{ url_for('static', filename='mydeck.js') }}"></script>
+{% endblock %}

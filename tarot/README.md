@@ -23,6 +23,10 @@ That's the whole setup. No API key needed — see *Interpretation* below.
 | **6,084 combination routes** | `/combinations/<a>/<b>` resolves for every ordered pair. Sitemap inclusion is staged — see below. |
 | **An original deck** | 78 card faces drawn as SVG in `cardart.py`. ~1.5 KB each, vector, themed from CSS custom properties. No image assets, no licensing question. |
 | **Reading engine** | Cryptographic draw, deal/flip animation, streamed interpretation, local reading history. |
+| **Birth cards** | Traditional (Arrien/Greer) calculation plus 366 indexable date pages — the persistent card identity tarot otherwise lacks. |
+| **Your deck** | Pattern read across your own reading history: recurring cards, suit balance, reversal rate. Entirely client-side. |
+| **Share links** | A reading packs into a 6–15 character URL. Deterministic, so the link always renders the same draw. |
+| **Card of the day** | Deterministic per date — stable across reloads, devices and the whole audience. |
 | **Crawl surface** | Sharded sitemap, robots.txt, canonical tags, `noindex` on the interactive routes. |
 
 ## What's deliberately *not* here
@@ -39,6 +43,10 @@ each one depends on a decision that hasn't been made yet:
 - **Email** needs the transactional/marketing split set up as two isolated
   services on separate domains.
 
+`/my-deck` deliberately works without an account — history lives in the visitor's
+browser. That is the right default for a cold-start product, and it is also the
+thing accounts would upgrade first: the history is what makes leaving expensive.
+
 The reading engine and content library don't depend on any of those, which is
 why they're built first.
 
@@ -50,8 +58,9 @@ why they're built first.
 app.py           routes, draw mechanics, interpretation, sitemap
 tarot_data.py    78 cards, 6 spreads, contexts — the single source of truth
 cardart.py       SVG card faces (22 major emblems, 4 suit glyphs, pip layouts)
+personal.py      birth cards, share codec, card of the day
 templates/       Jinja templates
-static/          styles.css, app.js (theme), reading.js (the reading stage)
+static/          styles.css, app.js (theme), reading.js (stage), mydeck.js (history)
 ```
 
 A correction to a card's meaning goes in `tarot_data.py` and propagates to the
@@ -77,6 +86,26 @@ request path. Three reasons: crawlers need a stable low TTFB; a URL whose conten
 changes every fetch gets treated as unstable; and 8,000 pages × a model call per
 crawl is unbounded cost. The model runs only on `/reading/*`, which is `noindex`
 and doesn't need to be fast for a bot.
+
+## The personalisation problem, and what solves it
+
+Astrology apps hang everything on the natal chart: a permanent, unique object
+derived from birth data. Daily personalisation, compatibility, the social graph —
+all of it needs that object to exist.
+
+Tarot has no equivalent. A draw is random and the deck is the same 78 cards for
+everyone, so there is nothing to personalise *against*. Three things here build
+that missing layer:
+
+1. **Birth cards** (`/birth-card`) — a permanent card identity from a birth date,
+   using the traditional method rather than something invented for the site. It
+   doubles as an email-capture hook that is not a paywall, and generates 366 date
+   pages whose content genuinely varies by year.
+2. **Your deck** (`/my-deck`) — patterns across your own history. This is the one
+   that compounds: a natal chart is fixed at signup and never grows, but a reading
+   history gets richer with use.
+3. **Share links** (`/r/<code>`) — a reading survives as an object someone else can
+   open, without requiring either party to have an account.
 
 ## Staging the combination pages
 

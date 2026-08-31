@@ -13,6 +13,7 @@
   var body    = document.getElementById('interpBody');
   var actions = document.getElementById('actions');
   var again   = document.getElementById('againBtn');
+  var share   = document.getElementById('shareBtn');
   var qInput  = document.getElementById('question');
   var qCount  = document.getElementById('qCount');
   var revBox  = document.getElementById('reversals');
@@ -133,7 +134,9 @@
         at: Date.now(),
         spread: cfg.spread,
         question: qInput.value.trim(),
-        cards: cards.map(function (c) { return { name: c.name, reversed: c.reversed }; })
+        cards: cards.map(function (c) {
+          return { name: c.name, slug: c.slug, reversed: c.reversed };
+        })
       });
       localStorage.setItem('readings', JSON.stringify(log.slice(0, 30)));
     } catch (e) { /* private mode, quota, blocked storage — never fatal */ }
@@ -167,6 +170,11 @@
       status.textContent = 'Reading the spread…';
       remember(data.cards);
 
+      if (share && data.share) {
+        share.dataset.url = window.location.origin + data.share;
+        share.textContent = 'Copy share link';
+      }
+
       await stream(data.drawn);
       status.textContent = '';
       actions.classList.remove('hidden');
@@ -177,6 +185,22 @@
       drawBtn.disabled = false;
       drawBtn.textContent = 'Shuffle & draw again';
     }
+  }
+
+  if (share) {
+    share.addEventListener('click', async function () {
+      var url = share.dataset.url;
+      if (!url) return;
+      /* The clipboard API needs a secure context and a permission that can be
+         refused, so always leave the link on screen as the fallback. */
+      try {
+        await navigator.clipboard.writeText(url);
+        share.textContent = 'Link copied';
+      } catch (e) {
+        share.textContent = url;
+      }
+      setTimeout(function () { share.textContent = 'Copy share link'; }, 2600);
+    });
   }
 
   drawBtn.addEventListener('click', go);

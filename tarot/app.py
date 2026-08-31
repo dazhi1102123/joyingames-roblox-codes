@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import secrets
 from datetime import date, datetime
 from functools import lru_cache
@@ -29,8 +30,10 @@ from flask import (
     stream_with_context,
     url_for,
 )
+from markupsafe import escape
 
 import cardart
+import personal
 from tarot_data import (
     CARDS,
     CARDS_BY_SLUG,
@@ -399,6 +402,23 @@ def combo_reading(a, b):
 # Template context
 # ---------------------------------------------------------------------------
 
+_MD_BOLD = re.compile(r"\*\*([^*]+)\*\*")
+_MD_ITALIC = re.compile(r"\*([^*]+)\*")
+
+
+@app.template_filter("md")
+def render_md(text):
+    """The same restrained subset the client renders: bold, italic, nothing else.
+
+    Escape first, then substitute, so a stray asterisk in a card name or a
+    user's question can never introduce markup.
+    """
+    out = escape(text)
+    out = _MD_BOLD.sub(r"<strong>\1</strong>", str(out))
+    return _MD_ITALIC.sub(r"<em>\1</em>", out)
+
+
+
 @app.context_processor
 def inject_globals():
     return {
@@ -421,9 +441,12 @@ def inject_globals():
 @app.route("/")
 def home():
     featured = [CARDS_BY_SLUG[s] for s in ("the-star", "the-tower", "the-sun", "the-moon")]
+    today, today_rev = personal.card_of_the_day()
     return render_template(
         "index.html",
         featured=featured,
+        today=today,
+        today_rev=today_rev,
         title=f"{app.config['SITE_NAME']} — Free Tarot Reading, Interpreted Properly",
         description=(
             "Free tarot readings with a real interpretation of your question — no signup, "
@@ -458,6 +481,7 @@ def api_draw():
     return jsonify({
         "spread": spread["slug"],
         "drawn": drawn,
+        "share": url_for("shared_reading", code=personal.encode_reading(spread["slug"], drawn)),
         "cards": [
             {
                 "slug": e["card"]["slug"],
@@ -471,6 +495,17 @@ def api_draw():
             }
             for e in cards
         ],
+    })
+
+
+@app.get("/api/card-art")
+def api_card_art():
+    """SVG faces for a handful of slugs, for pages that build their card list
+    in the browser. Capped so it cannot be used to pull the whole deck."""
+    wanted = (request.args.get("slugs") or "").split(",")[:12]
+    return jsonify({
+        slug: cardart.card_svg(CARDS_BY_SLUG[slug])
+        for slug in wanted if slug in CARDS_BY_SLUG
     })
 
 
@@ -603,6 +638,105 @@ def legal(page):
 
 
 # ---------------------------------------------------------------------------
+# Routes — personal
+#
+# Tarot has no natal chart, so these three routes build the persistent objects
+# it can have: a card identity derived from a birth date, a pattern read across
+# your own history, and a reading that survives as a link.
+# ---------------------------------------------------------------------------
+
+@app.route("/birth-card")
+def birth_card():
+    result = None
+    args = request.args
+    try:
+        y, m, d = int(args["y"]), int(args["m"]), int(args["d"])
+        if y in personal.YEAR_RANGE and 1 <= m <= 12 and 1 <= d <= personal.MONTH_DAYS[m]:
+            personality, soul = personal.birth_cards(y, m, d)
+            result = {
+                "y": y, "m": m, "d": d,
+                "label": f"{personal.MONTH_NAME[m]} {d}, {y}",
+                "personality": personality,
+                "soul": soul,
+                "same": personality["slug"] == soul["slug"],
+                "year_card": personal.year_card(date.today().year, m, d),
+                "date_slug": f"{personal.MONTHS[m - 1][0]}-{d}",
+            }
+    except (KeyError, ValueError):
+        result = None
+
+    return render_template(
+        "birthcard.html",
+        result=result,
+        months=personal.MONTHS,
+        years=list(reversed(personal.YEAR_RANGE)),
+        canonical=url_for("birth_card"),
+        title=f"What Is My Tarot Birth Card? — {app.config['SITE_NAME']}",
+        description=(
+            "Find your tarot birth card from your date of birth. The traditional "
+            "calculation, with your personality card, soul card and this year's card."
+        ),
+    )
+
+
+@app.route("/birth-card/<slug>")
+def birth_date_page(slug):
+    parsed = personal.valid_date_slug(slug)
+    if not parsed:
+        abort(404)
+    month, day = parsed
+    label = f"{personal.MONTH_NAME[month]} {day}"
+    groups = personal.date_table(month, day)
+    return render_template(
+        "birthdate.html",
+        label=label,
+        month=month,
+        day=day,
+        groups=groups,
+        span=f"{personal.YEAR_RANGE[0]}–{personal.YEAR_RANGE[-1]}",
+        title=f"Tarot Birth Card for {label} — Every Birth Year",
+        description=(
+            f"Born on {label}? Your tarot birth card depends on your birth year. "
+            f"Every year from {personal.YEAR_RANGE[0]} to {personal.YEAR_RANGE[-1]}, "
+            f"with personality and soul cards."
+        ),
+    )
+
+
+@app.route("/my-deck")
+def my_deck():
+    """Reads nothing server-side — the history lives in the visitor's browser."""
+    return render_template(
+        "mydeck.html",
+        noindex=True,
+        title=f"Your Deck — {app.config['SITE_NAME']}",
+        description="Patterns across your own readings: recurring cards, suit balance and reversals.",
+    )
+
+
+@app.route("/r/<code>")
+def shared_reading(code):
+    decoded = personal.decode_reading(code)
+    if not decoded:
+        abort(404)
+    spread, drawn = decoded
+    cards = hydrate(drawn, spread)
+    paras = compose_reading(cards, spread)
+    return render_template(
+        "shared.html",
+        noindex=True,
+        spread=spread,
+        cards=cards,
+        paras=paras,
+        code=code,
+        title=f"A {spread['name']} reading — {app.config['SITE_NAME']}",
+        description=", ".join(
+            f"{e['card']['name']}{' reversed' if e['reversed'] else ''}" for e in cards
+        ),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Crawl surface
 # ---------------------------------------------------------------------------
 
@@ -620,7 +754,9 @@ def _sitemap_urls():
         (url_for("cards_index"), "0.9"),
         (url_for("spreads_index"), "0.7"),
         (url_for("learn"), "0.6"),
+        (url_for("birth_card"), "0.9"),
     ]
+    urls += [(url_for("birth_date_page", slug=s), "0.7") for s in personal.all_date_slugs()]
     urls += [(url_for("reading", slug=s), "0.8") for s in SPREADS]
     for card in CARDS:
         for ctx, _ in CONTEXTS:
@@ -671,6 +807,8 @@ def robots():
         "Allow: /",
         "Disallow: /reading/",
         "Disallow: /api/",
+        "Disallow: /r/",
+        "Disallow: /my-deck",
         "",
         f"Sitemap: {app.config['SITE_URL']}/sitemap.xml",
     ]

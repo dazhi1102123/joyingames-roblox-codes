@@ -31,6 +31,27 @@
   </div>
 </section>
 
+<section class="band today-band">
+  <div class="wrap today-grid">
+    <div class="today-card">{{ card_svg(today, today_rev) | safe }}</div>
+    <div>
+      <p class="eyebrow">Card of the day</p>
+      <h2 style="font-size:clamp(24px,3.2vw,32px);line-height:1.15">
+        {{ today.name }}{% if today_rev %}, reversed{% endif %}
+      </h2>
+      <p style="color:var(--ink-2);margin-top:12px;max-width:52ch">
+        {{ today.rev if today_rev else today.up }}
+      </p>
+      <p class="mono-note" style="margin-top:14px">
+        The same card for everyone today &middot; changes at midnight
+      </p>
+      <p style="margin-top:20px">
+        <a class="btn small ghost" href="{{ url_for('card_page', slug=today.slug) }}">Read {{ today.name }}</a>
+      </p>
+    </div>
+  </div>
+</section>
+
 <section class="band tint">
   <div class="wrap">
     <div class="band-head">
@@ -83,7 +104,10 @@
       <h2>All 78 cards, upright and reversed.</h2>
       <p>Every card has a page for love, career, money, health and yes-or-no questions — because "what does The Moon mean" and "what does The Moon mean about my relationship" are not the same question.</p>
     </div>
-    <a class="btn ghost" href="{{ url_for('cards_index') }}">Browse the deck</a>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <a class="btn ghost" href="{{ url_for('cards_index') }}">Browse the deck</a>
+      <a class="btn ghost" href="{{ url_for('birth_card') }}">Find your birth card</a>
+    </div>
   </div>
 </section>
 

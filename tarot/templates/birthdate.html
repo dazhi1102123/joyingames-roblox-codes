@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block head %}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Article","headline":{{ title | tojson }},
+ "description":{{ description | tojson }},
+ "publisher":{"@type":"Organization","name":{{ site_name | tojson }}}}
+</script>
+{% endblock %}
+{% block body %}
+<div class="wrap">
+  <p class="crumbs">
+    <a href="{{ url_for('home') }}">Home</a><span>/</span>
+    <a href="{{ url_for('birth_card') }}">Birth Card</a><span>/</span>{{ label }}
+  </p>
+</div>
+
+<section class="card-page">
+  <div class="wrap">
+    <div class="band-head">
+      <p class="eyebrow">Born {{ label }}</p>
+      <h1 style="font-size:clamp(30px,4.6vw,46px);line-height:1.08">Tarot birth card for {{ label }}</h1>
+      <p>There is no single card for {{ label }} — the calculation uses your birth <em>year</em> as
+         well, so the answer changes. Across {{ span }} it produces
+         {{ groups | length }} different card pairings. Find your year below.</p>
+    </div>
+
+    <div class="tw" style="overflow-x:auto">
+    <table class="year-table">
+      <thead>
+        <tr><th>Card</th><th>Soul card</th><th>Birth years</th><th class="num">Years</th></tr>
+      </thead>
+      <tbody>
+        {% for g in groups %}
+        <tr>
+          <td><a href="{{ url_for('card_page', slug=g.personality.slug) }}">{{ g.personality.name }}</a></td>
+          <td>{% if g.soul.slug == g.personality.slug %}<span class="same">same</span>{% else %}<a href="{{ url_for('card_page', slug=g.soul.slug) }}">{{ g.soul.name }}</a>{% endif %}</td>
+          <td class="years">{{ g.ranges | join(', ') }}</td>
+          <td class="num">{{ g.years | length }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+
+    <div class="cta-inline">
+      <p><strong>Want the exact answer, including this year's card?</strong> Enter your full date
+         and the calculator does the reduction for you.</p>
+      <a class="btn small" href="{{ url_for('birth_card') }}?m={{ month }}&d={{ day }}&y=1990">Calculate mine</a>
+    </div>
+
+    <div class="meaning">
+      <h2>The most common card for this date</h2>
+      {% set top = groups[0] %}
+      <p><strong>{{ top.personality.name }}</strong> comes up most often for people born on
+         {{ label }} — {{ top.years | length }} of the {{ span }} birth years land on it.
+         {{ top.personality.up }}</p>
+
+      <h2>Why the year matters</h2>
+      <p>The method adds month, day and year together, then reduces by digit sum. Because the year
+         is part of the sum, two people born on the same day a year apart usually get different
+         cards. That is the intended behaviour, not a flaw — the birth card is meant to be
+         personal, and a date alone is shared by roughly a two-hundredth of everyone alive.</p>
+    </div>
+
+    <div class="suit-head" style="margin-top:44px">
+      <h2 style="font-size:22px">Nearby dates</h2>
+      <span class="note">the card shifts as the date does</span>
+    </div>
+    <p style="max-width:64ch">
+      {% for off in [-3, -2, -1, 1, 2, 3] %}
+        {% set nd = day + off %}
+        {% if nd >= 1 and nd <= 28 %}
+        <a href="{{ url_for('birth_date_page', slug=(label.split(' ')[0] | lower) + '-' + nd|string) }}">{{ label.split(' ')[0] }} {{ nd }}</a>{% if not loop.last %} &nbsp;·&nbsp; {% endif %}
+        {% endif %}
+      {% endfor %}
+    </p>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block head %}<link rel="canonical" href="{{ site_url }}{{ canonical }}">{% endblock %}
+{% block body %}
+<div class="wrap"><p class="crumbs"><a href="{{ url_for('home') }}">Home</a><span>/</span>Birth Card</p></div>
+
+<section class="card-page">
+  <div class="wrap">
+    <div class="band-head">
+      <p class="eyebrow">Your card identity</p>
+      <h1 style="font-size:clamp(32px,5vw,50px);line-height:1.06">What is my tarot birth card?</h1>
+      <p>Tarot has no birth chart — every reading is drawn from the same 78 cards. The birth card
+         is the one exception: a card the tradition assigns to you permanently, calculated from
+         the date you were born.</p>
+    </div>
+
+    <form class="birth-form" method="get" action="{{ url_for('birth_card') }}">
+      <div class="birth-fields">
+        <label>Month
+          <select name="m" required>
+            {% for slug, name, days in months %}
+            <option value="{{ loop.index }}" {% if result and result.m == loop.index %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Day
+          <select name="d" required>
+            {% for i in range(1, 32) %}
+            <option value="{{ i }}" {% if result and result.d == i %}selected{% endif %}>{{ i }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>Year
+          <select name="y" required>
+            {% for y in years %}
+            <option value="{{ y }}" {% if result and result.y == y %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button class="btn" type="submit">Find my card</button>
+      </div>
+      <p class="mono-note" style="margin-top:12px">Nothing is stored. The calculation happens on the page and your date is not saved.</p>
+    </form>
+
+    {% if result %}
+    <div class="birth-result">
+      <p class="eyebrow">Born {{ result.label }}</p>
+
+      <div class="birth-cards">
+        <figure>
+          {{ card_svg(result.personality) | safe }}
+          <figcaption>
+            <span class="role">{{ 'Birth card' if result.same else 'Personality card' }}</span>
+            <a href="{{ url_for('card_page', slug=result.personality.slug) }}">{{ result.personality.name }}</a>
+          </figcaption>
+        </figure>
+        {% if not result.same %}
+        <figure>
+          {{ card_svg(result.soul) | safe }}
+          <figcaption>
+            <span class="role">Soul card</span>
+            <a href="{{ url_for('card_page', slug=result.soul.slug) }}">{{ result.soul.name }}</a>
+          </figcaption>
+        </figure>
+        {% endif %}
+        <figure>
+          {{ card_svg(result.year_card) | safe }}
+          <figcaption>
+            <span class="role">{{ year }} year card</span>
+            <a href="{{ url_for('card_page', slug=result.year_card.slug) }}">{{ result.year_card.name }}</a>
+          </figcaption>
+        </figure>
+      </div>
+
+      <div class="meaning" style="margin-top:36px">
+        <h2>{{ 'Your birth card' if result.same else 'Your personality card' }}</h2>
+        <p><strong>{{ result.personality.name }}.</strong> {{ result.personality.up }}</p>
+        <p>As a birth card this is not a prediction — it is a description of the register you
+           tend to operate in. The keywords worth sitting with: {{ result.personality.up_keys | join(', ') }}.</p>
+
+        {% if not result.same %}
+        <h2>Your soul card</h2>
+        <p><strong>{{ result.soul.name }}.</strong> {{ result.soul.up }}</p>
+        <p>The soul card sits underneath the personality card — {{ result.personality.name }} is how
+           you meet the world, {{ result.soul.name }} is what is running beneath it. People whose
+           two cards match get a single, more concentrated signature.</p>
+        {% endif %}
+
+        <h2>Your card for {{ year }}</h2>
+        <p><strong>{{ result.year_card.name }}.</strong> {{ result.year_card.up }}</p>
+        <p>Unlike the birth card, this one moves. It is recalculated each year from your birthday
+           and the current year, and it describes the season you are in rather than who you are.</p>
+
+        <h2>How this is calculated</h2>
+        <p>Add your month, day and full year together, then reduce the total by adding its digits
+           until it is 22 or below — 22 folds back to The Fool at zero. If the result is a
+           two-digit number, its own digit sum gives the soul card beneath it. This is the
+           traditional method used by Angeles Arrien and Mary Greer; it is not something invented
+           for this site.</p>
+      </div>
+
+      <div class="cta-inline">
+        <p><strong>Everyone born on {{ months[result.m - 1][1] }} {{ result.d }} does not get the same card.</strong>
+           The year changes the answer — see the full breakdown for your date.</p>
+        <a class="btn small" href="{{ url_for('birth_date_page', slug=result.date_slug) }}">See every year</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
