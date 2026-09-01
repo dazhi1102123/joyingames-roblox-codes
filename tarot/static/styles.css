@@ -931,3 +931,47 @@ img, svg { max-width: 100%; }
 }
 .pay-strip p { margin: 0; max-width: 44ch; }
 .pay-strip .eyebrow { margin-bottom: 6px; }
+
+/* ==========================================================================
+   List capture
+   ========================================================================== */
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+.capture {
+  display: grid; gap: 24px; margin: 44px 0 0;
+  padding: 28px 30px; border: 1px solid var(--rule-hard);
+  background: var(--surface); border-radius: var(--radius);
+}
+@media (min-width: 780px) { .capture { grid-template-columns: 1fr 300px; gap: 36px; align-items: center; } }
+.capture h2 { margin: 0; }
+.capture-form { display: flex; flex-direction: column; gap: 10px; }
+.capture-form input[type=email] {
+  width: 100%; font-family: var(--body); font-size: 16px;
+  padding: 13px 15px; background: var(--paper); color: var(--ink);
+  border: 1px solid var(--rule-hard); border-radius: var(--radius);
+}
+.capture-form input[type=email]:focus { border-color: var(--ink); outline: none; }
+.capture-form input[type=email]::placeholder { color: var(--ink-3); }
+.capture-form .consent {
+  margin: 0; font-family: var(--mono); font-size: 10.5px;
+  line-height: 1.7; color: var(--ink-3); letter-spacing: 0.02em;
+}
+
+.missing {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.04em;
+  color: var(--c-red); border: 1px dashed currentColor; padding: 2px 8px;
+  border-radius: 2px; display: inline-block;
+}
+
+/* SVG lettering. The card also carries these as presentation attributes so it
+   survives contexts with no stylesheet (email); these override them on-site. */
+.cardface-num {
+  font-family: var(--disp); font-size: 21px; letter-spacing: 0.09em;
+}
+.cardface-name {
+  font-family: var(--disp); letter-spacing: 0.05em;
+}

@@ -31,6 +31,7 @@ That's the whole setup. No API key needed — see *Interpretation* below.
 | **Correspondences** | Colour, stone and metal for all 78 cards, derived from planetary/zodiacal attribution and suit element — the content a daily brief and a physical product both need. |
 | **Daily brief** | `/daily` renders exactly what a daily email would contain, so the content engine can be reviewed before any send channel exists. |
 | **Human readings** | A small hand-picked roster, an async queue, and a reader desk. Cards are drawn instantly; a person writes the interpretation. |
+| **The list** | Double opt-in capture on the report and daily pages, one-click unsubscribe, and a daily send that refuses to run unsafely. |
 | **Crawl surface** | Sharded sitemap, robots.txt, canonical tags, `noindex` on the interactive routes. |
 
 ## What's deliberately *not* here
@@ -69,6 +70,8 @@ correspondences.py  colour / stone / metal per card, and the "what to watch" lin
 tarot_data.py    78 cards, 6 spreads, contexts — the single source of truth
 cardart.py       SVG card faces (22 major emblems, 4 suit glyphs, pip layouts)
 personal.py      birth cards, share codec, card of the day
+mailer.py        two isolated email channels; console / smtp / resend
+send_daily.py    the daily card send (dry run unless --send)
 store.py         SQLite: readers, order queue, state machine, retention
 seed_readers.py  create example readers and print their desk keys
 templates/       Jinja templates
@@ -204,6 +207,61 @@ refund after the fact cannot trap a reading the reader already wrote.
 
 Set `HUMAN_READINGS=0` to hide the whole feature.
 
+## Email
+
+Two channels with separate credentials, senders and **domains**, and the code
+refuses to send marketing when those domains match. That check lives in
+`mailer.send_marketing` rather than in a runbook, because a runbook does not stop
+a tired person at 2am, and the failure it prevents is not recoverable: one bad
+campaign takes the confirmation links down with it.
+
+| | carries | if it breaks |
+|---|---|---|
+| `MAIL_TX_*` | confirmation links, delivered readings | the product stops working |
+| `MAIL_MK_*` | the daily card | a campaign pauses |
+
+Providers: `console` (prints, the default so nothing leaks by accident), `smtp`,
+`resend`. Check both with `python mailer.py` — set `MAIL_CHECK_TO` to receive one
+of each.
+
+### Consent
+
+Double opt-in throughout. A pending row receives exactly one message, the
+confirmation, and nothing else; it is excluded from sends by the query rather
+than filtered afterwards. Each row stores the address, the moment, the IP, and
+**the exact sentence the person agreed to** — under German §7 UWG the burden of
+proving consent is the sender's, and "they ticked a box" is not proof without
+those four things.
+
+Unsubscribing is one click and immediate. RFC 8058 (`List-Unsubscribe-Post`) is
+set on every marketing message, so a mail client can POST the opt-out directly
+with no browser; Gmail, Yahoo and Microsoft all require it of bulk senders.
+Re-subscribing an unsubscribed address returns it to *pending*, never straight to
+confirmed — leaving takes one click, coming back requires proving the mailbox
+again.
+
+The subscribe endpoint returns the same page whether or not the address was
+already on the list. Anything else turns the form into a membership oracle.
+
+### Sending
+
+```bash
+python send_daily.py                 # dry run — renders, sends nothing
+python send_daily.py --send          # sends
+python send_daily.py --send --limit 50
+```
+
+Dry run is the default because a campaign script whose no-argument behaviour is
+"mail everyone" is one arrow-up away from a mistake with no undo.
+
+### Card art outside the site
+
+`cardart.card_svg` normally emits CSS custom properties so a card repaints itself
+per theme. **Email has no stylesheet**, so there those resolve to nothing and
+every card renders as a solid black rectangle. Anything drawing a card outside
+the site must pass `inline=True`, which substitutes literal values. This was a
+real bug, caught by rendering the email rather than by testing that it rendered.
+
 ## The claims boundary
 
 `correspondences.py` attaches a colour and a stone to every card. That content
@@ -268,6 +326,13 @@ which must be set for correct canonical tags and sitemap URLs.
       in the app. Back it up; a rebuild without it discards live orders.
 - [ ] Human readings store what a stranger wrote about their own life. The privacy
       policy must say so, name the retention period, and match what the code does.
+- [ ] Fill in every `OPERATOR_*` value. The legal pages render anything missing as
+      a visible MISSING marker, which is the point — in Germany the Impressum is
+      mandatory and its absence is independently actionable, and a marketing email
+      without a real postal address breaches CAN-SPAM on its own.
+- [ ] Give marketing its own sending domain, separate from the main one, and warm
+      it before any volume. The code will not send until it differs from the
+      transactional domain.
 
 ## Licence note
 

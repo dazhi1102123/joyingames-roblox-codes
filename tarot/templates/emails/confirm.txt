@@ -1,0 +1,14 @@
+Confirm your subscription
+
+You (or someone using this address) asked for the daily card from {{ site_name }}.
+
+Confirm here — the link works once and then this address is on the list:
+
+{{ link }}
+
+If that was not you, ignore this message. Nothing happens without the click,
+and this address will not be written to again.
+
+--
+{{ operator.legal_name or operator.name }}
+{{ operator.address }}{% if operator.country %}, {{ operator.country }}{% endif %}

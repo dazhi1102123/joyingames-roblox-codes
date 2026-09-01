@@ -91,7 +91,8 @@
       medical, legal, financial or otherwise — and nothing here predicts the future. You must be
       18 or older to use this site. Cards are drawn with your device's cryptographic random
       number generator.<br>
-      &copy; {{ year }} {{ site_name }}. Card artwork drawn for this site.
+      &copy; {{ year }} {{ operator.legal_name or operator.name }}. Card artwork drawn for this site.
+      {% if operator.address %}<br>{{ operator.address }}{% if operator.country %}, {{ operator.country }}{% endif %}{% endif %}
     </p>
   </div>
 </footer>

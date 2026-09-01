@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="prose narrow" style="padding-top:70px">
+  <p class="eyebrow">Unsubscribe</p>
+  <h1>Leave the daily card?</h1>
+  <p>One click and it stops. No confirmation email, no survey, no "are you sure"
+     after this one.</p>
+  <form method="post" action="{{ url_for('unsubscribe_page', token=token) }}" style="margin-top:26px">
+    <input type="hidden" name="form" value="1">
+    <button class="btn" type="submit">Unsubscribe</button>
+  </form>
+</section>
+{% endblock %}

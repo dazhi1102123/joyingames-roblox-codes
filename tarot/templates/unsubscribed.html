@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="prose narrow" style="padding-top:70px">
+  <p class="eyebrow">Done</p>
+  <h1>You're off the list.</h1>
+  <p>Nothing further will be sent. The site itself stays free and needs no
+     account — the deck and the readings are where you left them.</p>
+  <p class="mono-note">Want the address removed entirely rather than just
+     unsubscribed? Email {{ operator.email or '[set OPERATOR_EMAIL]' }} and it
+     will be deleted.</p>
+  <p style="margin-top:28px"><a class="btn ghost" href="{{ url_for('home') }}">Back to the site</a></p>
+</section>
+{% endblock %}

@@ -36,6 +36,7 @@ from markupsafe import escape
 
 import cardart
 import correspondences
+import mailer
 import payments
 import personal
 import store
@@ -85,6 +86,34 @@ app.config.update(
     # submits the 484 major-on-major pages.
     COMBO_SITEMAP_SCOPE=os.environ.get("COMBO_SITEMAP_SCOPE", "majors"),
     HUMAN_READINGS=os.environ.get("HUMAN_READINGS", "1") == "1",
+    # Who is legally responsible for this site. The Impressum and the
+    # privacy policy are built from these, and an email footer without a
+    # real postal address is a CAN-SPAM violation on its own.
+    OPERATOR={
+        "name": os.environ.get("OPERATOR_NAME", "OneFusion"),
+        "legal_name": os.environ.get("OPERATOR_LEGAL_NAME", ""),
+        "address": os.environ.get("OPERATOR_ADDRESS", ""),
+        "country": os.environ.get("OPERATOR_COUNTRY", ""),
+        "reg_number": os.environ.get("OPERATOR_REG_NUMBER", ""),
+        "vat": os.environ.get("OPERATOR_VAT", ""),
+        "email": os.environ.get("OPERATOR_EMAIL", ""),
+    },
+    MAIL_TX_PROVIDER=os.environ.get("MAIL_TX_PROVIDER", "console"),
+    MAIL_TX_FROM=os.environ.get("MAIL_TX_FROM", ""),
+    MAIL_TX_REPLY_TO=os.environ.get("MAIL_TX_REPLY_TO", ""),
+    MAIL_TX_API_KEY=os.environ.get("MAIL_TX_API_KEY", ""),
+    MAIL_TX_SMTP_HOST=os.environ.get("MAIL_TX_SMTP_HOST", ""),
+    MAIL_TX_SMTP_PORT=os.environ.get("MAIL_TX_SMTP_PORT", ""),
+    MAIL_TX_SMTP_USER=os.environ.get("MAIL_TX_SMTP_USER", ""),
+    MAIL_TX_SMTP_PASSWORD=os.environ.get("MAIL_TX_SMTP_PASSWORD", ""),
+    MAIL_MK_PROVIDER=os.environ.get("MAIL_MK_PROVIDER", "console"),
+    MAIL_MK_FROM=os.environ.get("MAIL_MK_FROM", ""),
+    MAIL_MK_REPLY_TO=os.environ.get("MAIL_MK_REPLY_TO", ""),
+    MAIL_MK_API_KEY=os.environ.get("MAIL_MK_API_KEY", ""),
+    MAIL_MK_SMTP_HOST=os.environ.get("MAIL_MK_SMTP_HOST", ""),
+    MAIL_MK_SMTP_PORT=os.environ.get("MAIL_MK_SMTP_PORT", ""),
+    MAIL_MK_SMTP_USER=os.environ.get("MAIL_MK_SMTP_USER", ""),
+    MAIL_MK_SMTP_PASSWORD=os.environ.get("MAIL_MK_SMTP_PASSWORD", ""),
     PAYMENT_PROVIDER=os.environ.get("PAYMENT_PROVIDER", "manual"),
     ADMIN_KEY=os.environ.get("ADMIN_KEY", ""),
     WAFFO_API_KEY=os.environ.get("WAFFO_API_KEY", ""),
@@ -456,6 +485,8 @@ def inject_globals():
         "spreads": SPREADS,
         "suits": SUITS,
         "year": date.today().year,
+        "operator": app.config["OPERATOR"],
+        "consent_text": CONSENT_TEXT,
         "card_svg": cardart.card_svg,
         "card_back": cardart.card_back_svg,
     }
@@ -1084,6 +1115,93 @@ def desk_action(token, action):
 
 
 # ---------------------------------------------------------------------------
+# Routes — list
+#
+# Double opt-in end to end. A pending row receives exactly one message, the
+# confirmation, and nothing else until it is confirmed. That is a legal
+# requirement in Germany rather than a courtesy, and the burden of proving it
+# sits with the sender, so the wording someone agreed to is stored with the row.
+# ---------------------------------------------------------------------------
+
+CONSENT_TEXT = (
+    "Send me the daily card by email. I can unsubscribe with one click in any "
+    "message."
+)
+
+
+def _client_ip():
+    """Best-effort, for the consent record. Behind a proxy the header is what
+    there is; it is evidence of a request, not an identification of a person."""
+    fwd = request.headers.get("X-Forwarded-For", "")
+    return (fwd.split(",")[0].strip() if fwd else request.remote_addr or "")[:45]
+
+
+@app.post("/subscribe")
+def subscribe():
+    email = request.form.get("email", "")
+    source = (request.form.get("source") or "site")[:40]
+    token = store.subscribe(email, source, CONSENT_TEXT, _client_ip())
+
+    # The response never differs by whether the address was already on the list.
+    # Anything else turns this form into a membership oracle.
+    if token:
+        sub = store.get_subscriber(token)
+        if sub and sub["status"] == store.SUB_PENDING:
+            try:
+                _send_confirmation(sub)
+            except mailer.MailError as exc:
+                app.logger.error("confirmation send failed: %s", exc)
+
+    return render_template(
+        "subscribed.html", noindex=True,
+        title="Check your inbox", description="Confirm your subscription.")
+
+
+def _send_confirmation(sub):
+    m = mailer.get_mailer(app.config)
+    link = url_for("subscribe_confirm", token=sub["token"], _external=True)
+    ctx = {"link": link, "site_name": app.config["SITE_NAME"],
+           "operator": app.config["OPERATOR"]}
+    # Confirmation is transactional: it is the reply to an action someone just
+    # took, and it must arrive even when a campaign has upset the marketing
+    # domain's reputation.
+    m.send_transactional(
+        sub["email"],
+        f"Confirm your {app.config['SITE_NAME']} subscription",
+        html=render_template("emails/confirm.html", **ctx),
+        text=render_template("emails/confirm.txt", **ctx),
+    )
+
+
+@app.route("/subscribe/confirm/<token>")
+def subscribe_confirm(token):
+    sub = store.confirm_subscriber(token, _client_ip())
+    return render_template(
+        "confirmed.html", noindex=True, ok=bool(sub),
+        unsubscribe_url=url_for("unsubscribe_page", token=token) if sub else None,
+        title="Subscription confirmed" if sub else "Link expired",
+        description="Your subscription.")
+
+
+@app.route("/unsubscribe/<token>", methods=["GET", "POST"])
+def unsubscribe_page(token):
+    """GET shows a confirm button; POST removes.
+
+    POST also serves RFC 8058 one-click: mail clients post here directly from
+    the List-Unsubscribe-Post header, with no browser and no session.
+    """
+    if request.method == "POST":
+        store.unsubscribe(token)
+        if request.headers.get("List-Unsubscribe") or "form" not in request.form:
+            return Response("Unsubscribed", mimetype="text/plain")
+        return render_template("unsubscribed.html", noindex=True,
+                               title="Unsubscribed", description="You are off the list.")
+    return render_template("unsubscribe.html", noindex=True, token=token,
+                           title="Unsubscribe", description="Leave the list.")
+
+
+
+# ---------------------------------------------------------------------------
 # Payment
 #
 # The provider is chosen by config and reached only through this interface, so
@@ -1329,6 +1447,8 @@ def robots():
         "Disallow: /desk",
         "Disallow: /admin",
         "Disallow: /webhooks/",
+        "Disallow: /subscribe/",
+        "Disallow: /unsubscribe/",
         "",
         f"Sitemap: {app.config['SITE_URL']}/sitemap.xml",
     ]

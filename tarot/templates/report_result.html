@@ -93,6 +93,8 @@
     </div>
     {% endif %}
 
+    {% with source = 'report' %}{% include '_subscribe_form.html' %}{% endwith %}
+
     <div class="reading-actions" style="justify-content:flex-start">
       <a class="btn" href="{{ share }}">Open the shareable version</a>
       <a class="btn ghost" href="{{ url_for('report_form') }}">Write another report</a>

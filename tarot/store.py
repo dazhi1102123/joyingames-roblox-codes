@@ -76,10 +76,29 @@ CREATE TABLE IF NOT EXISTS orders (
 # migration cannot be created before that column exists, and an existing
 # database would otherwise fail to open.
 INDEXES = """
+CREATE TABLE IF NOT EXISTS subscribers (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    email         TEXT    NOT NULL UNIQUE,
+    status        TEXT    NOT NULL DEFAULT 'pending',
+    token         TEXT    NOT NULL UNIQUE,
+    source        TEXT    NOT NULL DEFAULT '',
+    -- The evidence, not the checkbox. Under German §7 UWG the burden of proving
+    -- consent is on the sender, and "they ticked a box" is not proof unless you
+    -- can show when, from where, and the exact words they agreed to.
+    consent_text  TEXT    NOT NULL DEFAULT '',
+    consent_at    TEXT    NOT NULL,
+    consent_ip    TEXT    NOT NULL DEFAULT '',
+    confirmed_at  TEXT,
+    confirmed_ip  TEXT    NOT NULL DEFAULT '',
+    unsubscribed_at TEXT,
+    last_sent_at  TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_orders_reader  ON orders(reader_id, status);
 CREATE INDEX IF NOT EXISTS idx_orders_expires ON orders(expires_at);
 CREATE INDEX IF NOT EXISTS idx_orders_payref  ON orders(payment_ref);
 CREATE INDEX IF NOT EXISTS idx_orders_payout  ON orders(payout_status, reader_id);
+CREATE INDEX IF NOT EXISTS idx_subs_status    ON subscribers(status);
 """
 
 # Columns added after the first release, as (table, column, ddl). Applied
@@ -461,3 +480,135 @@ def settle_reader(reader_id):
                  AND payment_status = 'paid' AND payout_status = 'owed'""",
             (_now(), reader_id))
         return row["jobs"], row["cents"]
+
+
+# ---------------------------------------------------------------------------
+# Subscribers
+#
+# Double opt-in throughout. A pending row is not a subscriber and is never sent
+# marketing — only the one confirmation message that turns it into consent.
+# ---------------------------------------------------------------------------
+
+SUB_PENDING = "pending"
+SUB_CONFIRMED = "confirmed"
+SUB_UNSUBSCRIBED = "unsubscribed"
+SUB_COMPLAINED = "complained"
+
+# A deliberately permissive shape check. Real validation is the confirmation
+# email: an address that cannot receive one never becomes a subscriber.
+def normalise_email(raw):
+    email = (raw or "").strip().lower()
+    if len(email) > 254 or email.count("@") != 1:
+        return None
+    local, _, domain = email.partition("@")
+    if not local or "." not in domain or domain.startswith(".") or domain.endswith("."):
+        return None
+    if any(ch.isspace() for ch in email):
+        return None
+    return email
+
+
+def subscribe(email, source, consent_text, ip=""):
+    """Record an intent to subscribe and return its token, or None if invalid.
+
+    Idempotent by address. Re-subscribing a pending row reuses it so a second
+    click does not create a duplicate; re-subscribing an unsubscribed address
+    reopens it as *pending*, never straight to confirmed — leaving requires one
+    click, coming back requires proving the mailbox again.
+    """
+    email = normalise_email(email)
+    if not email:
+        return None
+    token = secrets.token_urlsafe(24)
+    with connect() as c:
+        row = c.execute("SELECT id, status, token FROM subscribers WHERE email = ?",
+                        (email,)).fetchone()
+        if row:
+            if row["status"] == SUB_CONFIRMED:
+                return row["token"]        # already in; nothing to confirm
+            c.execute(
+                """UPDATE subscribers
+                   SET status = ?, token = ?, source = ?, consent_text = ?,
+                       consent_at = ?, consent_ip = ?, unsubscribed_at = NULL
+                   WHERE id = ?""",
+                (SUB_PENDING, token, source, consent_text, _now(), ip, row["id"]))
+            return token
+        c.execute(
+            """INSERT INTO subscribers
+               (email, status, token, source, consent_text, consent_at, consent_ip)
+               VALUES (?,?,?,?,?,?,?)""",
+            (email, SUB_PENDING, token, source, consent_text, _now(), ip))
+        return token
+
+
+def get_subscriber(token):
+    if not token or len(token) > 64:
+        return None
+    with connect() as c:
+        row = c.execute("SELECT * FROM subscribers WHERE token = ?", (token,)).fetchone()
+        return dict(row) if row else None
+
+
+def confirm_subscriber(token, ip=""):
+    """Complete double opt-in. Returns the subscriber, or None."""
+    sub = get_subscriber(token)
+    if not sub or sub["status"] == SUB_UNSUBSCRIBED:
+        return None
+    if sub["status"] == SUB_CONFIRMED:
+        return sub                          # a second click is not an error
+    with connect() as c:
+        c.execute(
+            """UPDATE subscribers SET status = ?, confirmed_at = ?, confirmed_ip = ?
+               WHERE token = ?""", (SUB_CONFIRMED, _now(), ip, token))
+    return get_subscriber(token)
+
+
+def unsubscribe(token, complained=False):
+    """One click out. Always reports success — an address that is not on the
+    list is, from the sender's side, exactly as unsubscribed as one that was."""
+    if not token or len(token) > 64:
+        return False
+    status = SUB_COMPLAINED if complained else SUB_UNSUBSCRIBED
+    with connect() as c:
+        c.execute(
+            """UPDATE subscribers SET status = ?, unsubscribed_at = ?
+               WHERE token = ? AND status != ?""", (status, _now(), token, status))
+    return True
+
+
+def confirmed_subscribers(limit=500, after_id=0):
+    """A page of confirmed subscribers, for a send. Excludes everything else —
+    pending, unsubscribed and complained addresses are never returned."""
+    with connect() as c:
+        rows = c.execute(
+            """SELECT id, email, token FROM subscribers
+               WHERE status = ? AND id > ? ORDER BY id LIMIT ?""",
+            (SUB_CONFIRMED, after_id, limit)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def mark_sent(ids):
+    if not ids:
+        return
+    with connect() as c:
+        c.executemany("UPDATE subscribers SET last_sent_at = ? WHERE id = ?",
+                      [(_now(), i) for i in ids])
+
+
+def subscriber_stats():
+    with connect() as c:
+        rows = c.execute(
+            "SELECT status, COUNT(*) AS n FROM subscribers GROUP BY status").fetchall()
+        stats = {r["status"]: r["n"] for r in rows}
+        stats["total"] = sum(stats.values())
+        return stats
+
+
+def forget_subscriber(email):
+    """Erasure, for a GDPR request. Deletes rather than flagging — an erasure
+    request is not satisfied by keeping the row with a marker on it."""
+    email = normalise_email(email)
+    if not email:
+        return False
+    with connect() as c:
+        return c.execute("DELETE FROM subscribers WHERE email = ?", (email,)).rowcount > 0

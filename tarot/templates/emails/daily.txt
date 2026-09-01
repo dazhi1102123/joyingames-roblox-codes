@@ -1,0 +1,23 @@
+{{ brief.card.name }}{% if brief.reversed %}, reversed{% endif %} — {{ today.strftime('%A %-d %B') }}
+
+{{ brief.body }}
+
+Keywords: {{ brief.keywords | join(' / ') }}
+Colour:   {{ brief.colour }}
+Stone:    {{ brief.stone }}
+Metal:    {{ brief.metal }}
+
+WHAT TO WATCH
+{{ brief.watch }}
+
+Today's card is the same for everyone. One drawn against your own question is not:
+{{ report_url }}
+
+Correspondences are traditional associations, not remedies. For entertainment and
+reflection only — not advice, and not a prediction.
+
+--
+{{ operator.legal_name or operator.name }}
+{{ operator.address }}{% if operator.country %}, {{ operator.country }}{% endif %}
+
+Unsubscribe: {{ unsubscribe_url }}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="prose narrow" style="padding-top:70px">
+  <p class="eyebrow">One more step</p>
+  <h1>Check your inbox.</h1>
+  <p>If that address can receive mail, a confirmation link is on its way. The
+     subscription only starts when you click it — until then nothing else will be
+     sent to you.</p>
+  <p class="mono-note">We do not say whether an address was already on the list.
+     A form that answered that question would be a way to find out who is.</p>
+  <p style="margin-top:28px"><a class="btn ghost" href="{{ url_for('daily') }}">See today's card</a></p>
+</section>
+{% endblock %}

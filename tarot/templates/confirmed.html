@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="prose narrow" style="padding-top:70px">
+{% if ok %}
+  <p class="eyebrow">Confirmed</p>
+  <h1>You're on the list.</h1>
+  <p>The daily card arrives each morning: the card, what it is about, its
+     traditional colour and stone, and the failure mode worth watching.</p>
+  <p>One click leaves, from any message or
+     <a href="{{ unsubscribe_url }}">this link</a>. No reason needed and no
+     survey on the way out.</p>
+  <p style="margin-top:28px"><a class="btn" href="{{ url_for('daily') }}">Today's card</a></p>
+{% else %}
+  <p class="eyebrow">Link expired</p>
+  <h1>That link no longer works.</h1>
+  <p>Confirmation links are single-use and are replaced whenever a new one is
+     requested. Ask for a fresh one and it will arrive in a moment.</p>
+  <p style="margin-top:28px"><a class="btn" href="{{ url_for('daily') }}">Start again</a></p>
+{% endif %}
+</section>
+{% endblock %}

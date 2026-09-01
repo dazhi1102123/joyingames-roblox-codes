@@ -1,4 +1,9 @@
 {% extends "base.html" %}
+{% macro field(label, value, why) %}
+  <div><dt style="text-align:left;min-width:150px">{{ label }}</dt>
+    <dd style="text-align:left">{% if value %}{{ value }}{% else %}<span class="missing">MISSING &mdash; {{ why }}</span>{% endif %}</dd></div>
+{% endmacro %}
+
 {% block body %}
 <div class="wrap">
   <p class="crumbs"><a href="{{ url_for('home') }}">Home</a><span>/</span>{{ heading }}</p>
@@ -55,12 +60,39 @@
   <h2>Third parties</h2>
   <p>Reading interpretations may be generated using a third-party language model provider. The
      text of your question and the cards drawn are transmitted to that provider for that purpose.
-     [Name the provider and link its privacy terms here.]</p>
+     Payments, where taken, are processed by a Merchant of Record who becomes the seller for that
+     transaction and handles your payment details — we never see or store them.
+     [Name each provider and link its terms here.]</p>
+
+  <h2>What we do store</h2>
+  <p>Two things, and only if you choose them:</p>
+  <ul>
+    <li><strong>Your email address</strong>, if you subscribe to the daily card. We record the
+       address, the moment you asked, the IP the request came from, and the exact sentence you
+       agreed to — that record exists so consent can be proven, which under German law is our
+       burden and not yours. Nothing is sent until you click the confirmation link.</li>
+    <li><strong>A reading request</strong>, if you order a reading from one of our readers: what
+       you wrote, the cards drawn, and a private link. No account and no payment details. The
+       whole record is deleted automatically after 90 days.</li>
+  </ul>
+
+  <h2>Leaving</h2>
+  <p>Every email carries a one-click unsubscribe, and it takes effect immediately — there is no
+     confirmation step and no survey. To have the address deleted outright rather than
+     unsubscribed, write to {{ operator.email or '[set OPERATOR_EMAIL]' }} and it will be removed
+     from the database, not flagged.</p>
 
   <h2>Your rights</h2>
   <p>If you are in the EEA or UK you have rights of access, rectification, erasure, restriction,
-     portability and objection under the GDPR. [Insert controller identity, contact address, legal
-     bases, retention periods and supervisory authority.]</p>
+     portability and objection under the GDPR. The controller is:</p>
+  <dl class="facts">
+    {{ field('Controller', operator.legal_name or operator.name, 'set OPERATOR_LEGAL_NAME') }}
+    {{ field('Address', operator.address, 'set OPERATOR_ADDRESS') }}
+    {{ field('Contact', operator.email, 'set OPERATOR_EMAIL') }}
+  </dl>
+  <p class="mono-note">[Still to complete with counsel: the legal bases relied on, retention
+     periods beyond the two stated above, processors used, international transfers, and the
+     competent supervisory authority.]</p>
 
   {% else %}
   <h1>Terms of Use</h1>
@@ -91,10 +123,20 @@
      supplied immediately, which must be collected as an explicit checkbox at checkout.]</p>
 
   <h2>Operator</h2>
-  <p class="mono-note">[Insert legal entity name, registered address, company number, VAT ID and
-     contact email. In Germany this is the Impressum and it is mandatory.]</p>
+  <dl class="facts">
+    {{ field('Trading as', operator.name, 'set OPERATOR_NAME') }}
+    {{ field('Legal entity', operator.legal_name, 'set OPERATOR_LEGAL_NAME — the full registered name') }}
+    {{ field('Registered address', operator.address, 'set OPERATOR_ADDRESS — required in the Impressum and in every marketing email') }}
+    {{ field('Country', operator.country, 'set OPERATOR_COUNTRY') }}
+    {{ field('Company number', operator.reg_number, 'set OPERATOR_REG_NUMBER') }}
+    {{ field('VAT ID', operator.vat, 'set OPERATOR_VAT') }}
+    {{ field('Contact', operator.email, 'set OPERATOR_EMAIL') }}
+  </dl>
+  <p class="mono-note">Anything marked MISSING above must be filled in before launch. In Germany
+     the Impressum is mandatory and its absence is independently actionable; a marketing email
+     without a real postal address also breaches CAN-SPAM.</p>
   {% endif %}
 
-  <p class="mono-note" style="margin-top:40px">Last updated: {{ year }}</p>
+  <p class="mono-note" style="margin-top:40px">Operated by {{ operator.legal_name or operator.name }} &middot; last updated {{ year }}</p>
 </section>
 {% endblock %}

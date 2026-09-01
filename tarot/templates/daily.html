@@ -32,6 +32,8 @@
       <p>{{ brief.watch }}</p>
     </div>
 
+    {% with source = 'daily' %}{% include '_subscribe_form.html' %}{% endwith %}
+
     <div class="cta-inline">
       <p><strong>Today's card is the same for everyone.</strong> A card drawn against your own
          question is not.</p>

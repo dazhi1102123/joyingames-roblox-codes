@@ -1,0 +1,25 @@
+<div style="margin:0;padding:24px;background:#E6E3D5;font-family:Georgia,'Times New Roman',serif;color:#1B1815">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto">
+    <tr><td style="padding:0 0 22px">
+      <span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:#D9A521;border:2px solid #1B1815;vertical-align:middle"></span>
+      <span style="font-size:16px;letter-spacing:.09em;text-transform:uppercase;vertical-align:middle;padding-left:8px">{{ site_name }}</span>
+    </td></tr>
+    <tr><td style="background:#F7F4EA;border:1px solid #ABA48D;padding:32px 30px">
+      <h1 style="margin:0 0 16px;font-size:26px;font-weight:normal;line-height:1.2">Confirm your subscription</h1>
+      <p style="margin:0 0 18px;font-size:16px;line-height:1.65">
+        You (or someone using this address) asked for the daily card from {{ site_name }}.
+      </p>
+      <p style="margin:0 0 26px">
+        <a href="{{ link }}" style="display:inline-block;background:#1B1815;color:#F7F4EA;text-decoration:none;padding:13px 26px;font-family:'Courier New',monospace;font-size:12px;letter-spacing:.13em;text-transform:uppercase">Confirm subscription</a>
+      </p>
+      <p style="margin:0;font-size:14.5px;line-height:1.6;color:#5A5648">
+        If that was not you, ignore this message. Nothing happens without the click,
+        and this address will not be written to again.
+      </p>
+    </td></tr>
+    <tr><td style="padding:18px 4px 0;font-family:'Courier New',monospace;font-size:11px;line-height:1.7;color:#8B8676">
+      {{ operator.legal_name or operator.name }}<br>
+      {{ operator.address }}{% if operator.country %}, {{ operator.country }}{% endif %}
+    </td></tr>
+  </table>
+</div>

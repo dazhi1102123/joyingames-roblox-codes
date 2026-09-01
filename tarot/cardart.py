@@ -17,6 +17,33 @@ CX = W / 2
 INK = "var(--card-line)"
 FACE = "var(--card-face)"
 
+# The same values styles.css defines on :root, for contexts that have no
+# stylesheet. Email is the one that matters: there `var(--card-face)` resolves
+# to nothing and every card fills black. The light palette is the right one to
+# inline — a card is a light object whatever the room is doing, and an inbox is
+# not a room we control.
+LITERALS = {
+    "var(--card-line)": "#1B1815",
+    "var(--card-face)": "#F7F4EA",
+    "var(--c-yellow)":  "#D9A521",
+    "var(--c-red)":     "#B4442F",
+    "var(--c-blue)":    "#3D6390",
+    "var(--c-green)":   "#5F7F55",
+    "var(--c-slate)":   "#6B7078",
+}
+
+# Presentation attributes so the lettering is legible with no CSS at all. Real
+# CSS still wins on the site, which is why the classes stay.
+NUM_FONT = 'font-family="Marcellus, Georgia, serif" font-size="21" letter-spacing="1.4"'
+NAME_FONT = 'font-family="Marcellus, Georgia, serif" letter-spacing="0.6"'
+
+
+def inline_colours(svg):
+    """Replace every CSS custom property with its literal value."""
+    for var, literal in LITERALS.items():
+        svg = svg.replace(var, literal)
+    return svg
+
 PALETTE = {
     "yellow": "var(--c-yellow)",
     "red": "var(--c-red)",
@@ -398,14 +425,19 @@ def _name_size(name):
     return 14
 
 
-def card_svg(card, is_reversed=False, extra_class=""):
-    """Render one card face. `is_reversed` turns the whole face, as a real deck does."""
+def card_svg(card, is_reversed=False, extra_class="", inline=False):
+    """Render one card face. `is_reversed` turns the whole face, as a real deck does.
+
+    Pass `inline=True` anywhere the site stylesheet is absent — email above all,
+    where the CSS variables resolve to nothing and every card comes out a solid
+    black rectangle.
+    """
     name = card["name"].upper()
     label = card["roman"]
     rotate = ' transform="rotate(180 150 260)"' if is_reversed else ""
     cls = f"cardface {extra_class}".strip()
 
-    return (
+    svg = (
         f'<svg class="{cls}" viewBox="0 0 {W} {H}" role="img" '
         f'aria-label="{card["name"]}{" reversed" if is_reversed else ""}" '
         f'xmlns="http://www.w3.org/2000/svg">'
@@ -414,15 +446,17 @@ def card_svg(card, is_reversed=False, extra_class=""):
         f'<rect x="12" y="12" width="{W - 24}" height="{H - 24}" rx="4" fill="none" '
         f'stroke="{INK}" stroke-width="1.4" opacity="0.55"/>'
         f'<g{rotate}>'
-        f'<text class="cardface-num" x="{CX}" y="62" text-anchor="middle" fill="{INK}">{label}</text>'
+        f'<text class="cardface-num" x="{CX}" y="62" text-anchor="middle" fill="{INK}" '
+        f'{NUM_FONT}>{label}</text>'
         f'<path d="M108 78 h84" stroke="{INK}" stroke-width="1.2" opacity="0.5"/>'
         f'{_emblem(card)}'
         f'<path d="M40 434 h220" stroke="{INK}" stroke-width="1.2" opacity="0.5"/>'
         f'<text class="cardface-name" x="{CX}" y="470" text-anchor="middle" fill="{INK}" '
-        f'font-size="{_name_size(name)}">{name}</text>'
+        f'{NAME_FONT} font-size="{_name_size(name)}">{name}</text>'
         f'</g>'
         f'</svg>'
     )
+    return inline_colours(svg) if inline else svg
 
 
 def card_back_svg(extra_class=""):
