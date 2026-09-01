@@ -18,7 +18,6 @@ import re
 import secrets
 from datetime import date, datetime
 from functools import lru_cache
-from pathlib import Path
 
 from flask import (
     Flask,
@@ -33,6 +32,9 @@ from flask import (
     url_for,
 )
 from markupsafe import escape
+
+# First, so modules that resolve config at import time see .env.
+import envfile  # noqa: F401  (imported for its side effect)
 
 import cardart
 import correspondences
@@ -56,20 +58,6 @@ try:
 except ImportError:  # optional — the site is fully functional without it
     OpenAI = None
 
-
-def load_env_file() -> None:
-    env_path = Path(__file__).with_name(".env")
-    if not env_path.exists():
-        return
-    for raw in env_path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
-
-
-load_env_file()
 
 app = Flask(__name__)
 app.config.update(

@@ -1,15 +1,53 @@
 # Arcana Press
 
-An online tarot site: a reading engine and a programmatic content library, in one
-small Flask app with no database and no external services required to run.
+An online tarot site: a reading engine, a programmatic content library, a queue
+for readings written by people, and a mailing list — one small Flask app over
+SQLite, with no external service required to run it.
+
+## Run it locally
 
 ```bash
-cp .env.example .env
-docker compose up -d --build
-open http://localhost:5000
+./dev.sh
 ```
 
-That's the whole setup. No API key needed — see *Interpretation* below.
+That is the whole thing. It creates a virtualenv, installs dependencies, writes
+a `.env` with generated secrets, seeds three readers and one order at each stage
+of the flow, prints the keys you need, and starts the server on
+<http://localhost:5000>. Re-running never overwrites your `.env` and never
+re-seeds a database that already has orders in it.
+
+No API keys anywhere. Payment runs in `manual` mode and email prints to the
+terminal, so every flow is walkable without an account at any provider.
+
+Worth opening, in order:
+
+| | |
+|---|---|
+| `/reading/celtic-cross` | draw ten cards and watch the reading stream in |
+| `/report` | describe a situation, get a written report back |
+| `/readers` | order a reading from a person, then pay it through `/admin` |
+| `/desk` | the reader's queue — key printed by the seed step |
+| `/admin` · `/admin/payouts` | settlement and the reader ledger |
+| `/legal/privacy` | the red MISSING markers are the fields you still owe |
+
+```bash
+python send_daily.py     # dry run; prints the daily email
+python mailer.py         # checks the two channels are properly separated
+```
+
+### With Docker instead
+
+```bash
+cp .env.example .env     # then set SECRET_KEY and ADMIN_KEY
+docker compose up -d --build
+docker compose exec web python seed_readers.py
+docker compose exec web python seed_demo.py
+```
+
+**Seed inside the container, not on the host.** In Docker the database lives on
+a named volume at `/data`; running the seed scripts on the host would write to a
+different file and the readers would never appear.
+
 
 ---
 
@@ -70,7 +108,10 @@ correspondences.py  colour / stone / metal per card, and the "what to watch" lin
 tarot_data.py    78 cards, 6 spreads, contexts — the single source of truth
 cardart.py       SVG card faces (22 major emblems, 4 suit glyphs, pip layouts)
 personal.py      birth cards, share codec, card of the day
+envfile.py       loads .env before anything reads the environment
 mailer.py        two isolated email channels; console / smtp / resend
+dev.sh           one-command local run
+seed_demo.py     example orders, so admin and desk are not empty
 send_daily.py    the daily card send (dry run unless --send)
 store.py         SQLite: readers, order queue, state machine, retention
 seed_readers.py  create example readers and print their desk keys

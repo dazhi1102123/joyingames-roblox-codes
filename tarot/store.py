@@ -27,6 +27,10 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import envfile  # must precede the os.environ reads below
+
+envfile.load()
+
 DB_PATH = Path(os.environ.get("READINGS_DB", Path(__file__).with_name("readings.db")))
 RETENTION_DAYS = int(os.environ.get("ORDER_RETENTION_DAYS", "90"))
 
