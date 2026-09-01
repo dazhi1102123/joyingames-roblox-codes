@@ -62,15 +62,31 @@ CREATE TABLE IF NOT EXISTS orders (
     price_cents   INTEGER NOT NULL,
     currency      TEXT    NOT NULL,
     reading       TEXT    NOT NULL DEFAULT '',
+    payment_status TEXT   NOT NULL DEFAULT 'unpaid',
+    payment_ref   TEXT    NOT NULL DEFAULT '',
     created_at    TEXT    NOT NULL,
     claimed_at    TEXT,
     delivered_at  TEXT,
     expires_at    TEXT    NOT NULL
 );
 
+"""
+
+# Indexes are applied *after* migrations: an index on a column added by a
+# migration cannot be created before that column exists, and an existing
+# database would otherwise fail to open.
+INDEXES = """
 CREATE INDEX IF NOT EXISTS idx_orders_reader  ON orders(reader_id, status);
 CREATE INDEX IF NOT EXISTS idx_orders_expires ON orders(expires_at);
+CREATE INDEX IF NOT EXISTS idx_orders_payref  ON orders(payment_ref);
 """
+
+# Columns added after the first release. Applied additively on every start,
+# so upgrading is just deploying.
+MIGRATIONS = (
+    ("payment_status", "TEXT NOT NULL DEFAULT 'unpaid'"),
+    ("payment_ref", "TEXT NOT NULL DEFAULT ''"),
+)
 
 # Every state an order can be in, and what may follow it. Anything not listed
 # here is rejected rather than silently written.
@@ -102,6 +118,12 @@ def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with connect() as c:
         c.executescript(SCHEMA)
+        # SQLite has no ADD COLUMN IF NOT EXISTS, so check the table first.
+        have = {r["name"] for r in c.execute("PRAGMA table_info(orders)")}
+        for col, ddl in MIGRATIONS:
+            if col not in have:
+                c.execute(f"ALTER TABLE orders ADD COLUMN {col} {ddl}")
+        c.executescript(INDEXES)
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +186,9 @@ def reader_load(reader_id):
     """How many live orders a reader is holding, for the capacity check."""
     with connect() as c:
         return c.execute(
-            "SELECT COUNT(*) FROM orders WHERE reader_id = ? AND status IN ('open','claimed')",
+            """SELECT COUNT(*) FROM orders
+               WHERE reader_id = ? AND status IN ('open','claimed')
+                 AND payment_status IN ('pending','paid')""",
             (reader_id,),
         ).fetchone()[0]
 
@@ -201,16 +225,68 @@ def get_order(token):
         return _order(row) if row else None
 
 
-def orders_for_reader(reader_id, statuses=("open", "claimed")):
+def orders_for_reader(reader_id, statuses=("open", "claimed"), paid_only=True):
+    """A reader's queue.
+
+    Unpaid orders are withheld by default. Nobody should spend an hour writing
+    a reading that was never paid for, and showing it in the queue as a
+    temptation is worse than not showing it.
+    """
     marks = ",".join("?" * len(statuses))
+    pay_clause = " AND o.payment_status = 'paid'" if paid_only else ""
     with connect() as c:
         rows = c.execute(
             f"""SELECT o.*, r.name AS reader_name, r.slug AS reader_slug,
                        r.turnaround_h, r.tagline AS reader_tagline
                 FROM orders o JOIN readers r ON r.id = o.reader_id
-                WHERE o.reader_id = ? AND o.status IN ({marks})
+                WHERE o.reader_id = ? AND o.status IN ({marks}){pay_clause}
                 ORDER BY o.created_at""",
             (reader_id, *statuses)).fetchall()
+        return [_order(r) for r in rows]
+
+
+def set_payment(token, status, reference=None):
+    """Record a payment outcome. Idempotent — webhooks are delivered more than once."""
+    with connect() as c:
+        row = c.execute("SELECT payment_status FROM orders WHERE token = ?",
+                        (token,)).fetchone()
+        if not row:
+            return False
+        if row["payment_status"] == status:
+            return True
+        if reference is None:
+            c.execute("UPDATE orders SET payment_status = ? WHERE token = ?",
+                      (status, token))
+        else:
+            c.execute("UPDATE orders SET payment_status = ?, payment_ref = ? WHERE token = ?",
+                      (status, reference, token))
+        return True
+
+
+def order_by_payment_ref(reference):
+    """Resolve a provider's reference back to an order, for webhook handling."""
+    if not reference or len(reference) > 128:
+        return None
+    with connect() as c:
+        row = c.execute(
+            """SELECT o.*, r.name AS reader_name, r.slug AS reader_slug,
+                      r.turnaround_h, r.tagline AS reader_tagline
+               FROM orders o JOIN readers r ON r.id = o.reader_id
+               WHERE o.payment_ref = ? OR o.token = ?""",
+            (reference, reference)).fetchone()
+        return _order(row) if row else None
+
+
+def unpaid_orders(limit=100):
+    """Everything awaiting settlement, for the operator's manual-payment view."""
+    with connect() as c:
+        rows = c.execute(
+            """SELECT o.*, r.name AS reader_name, r.slug AS reader_slug,
+                      r.turnaround_h, r.tagline AS reader_tagline
+               FROM orders o JOIN readers r ON r.id = o.reader_id
+               WHERE o.payment_status IN ('unpaid', 'pending')
+                 AND o.status != 'cancelled'
+               ORDER BY o.created_at DESC LIMIT ?""", (limit,)).fetchall()
         return [_order(r) for r in rows]
 
 
@@ -233,13 +309,21 @@ def set_status(token, new_status, reading=None, reader_id=None):
     guessed desk URL cannot reach someone else's queue.
     """
     with connect() as c:
-        row = c.execute("SELECT status, reader_id FROM orders WHERE token = ?",
-                        (token,)).fetchone()
+        row = c.execute(
+            "SELECT status, reader_id, payment_status FROM orders WHERE token = ?",
+            (token,)).fetchone()
         if not row:
             return False
         if reader_id is not None and row["reader_id"] != reader_id:
             return False
         if new_status not in TRANSITIONS.get(row["status"], set()):
+            return False
+        # Withholding unpaid work from the queue is not enough on its own —
+        # the token is guessable from a bookmark. Claiming is where a reader
+        # starts spending time, so that is where payment is enforced.
+        # Delivery is deliberately not gated: once someone has written the
+        # reading, a later refund should not trap it.
+        if new_status == "claimed" and row["payment_status"] != "paid":
             return False
 
         fields, values = ["status = ?"], [new_status]

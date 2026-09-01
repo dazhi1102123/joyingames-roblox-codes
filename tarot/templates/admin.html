@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="card-page">
+  <div class="wrap">
+    <div class="desk-head">
+      <div>
+        <p class="eyebrow">Operator</p>
+        <h1 style="font-size:clamp(28px,4vw,38px);line-height:1.08">Awaiting settlement</h1>
+        <p class="mono-note">provider: {{ provider }}
+          {% if provider == 'manual' %}&middot; money moves out of band; confirm it here{% endif %}</p>
+      </div>
+    </div>
+
+    {% if orders %}
+    <div class="queue">
+      {% for o in orders %}
+      <div class="q-row" style="cursor:default">
+        <span class="q-status s-{{ 'claimed' if o.payment_status == 'pending' else 'open' }}">{{ o.payment_status }}</span>
+        <span class="q-focus">€{{ o.price }}</span>
+        <span class="q-text">
+          <b>{{ o.reader_name }}</b> &middot; {{ o.situation[:80] }}{% if o.situation|length > 80 %}…{% endif %}
+          <br><span class="mono-note">{{ o.created_at[:16] | replace('T',' ') }} &middot;
+            <a href="{{ url_for('order_view', token=o.token) }}">order</a></span>
+        </span>
+        <span class="q-due">
+          <form method="post" action="{{ url_for('admin_mark_paid', token=o.token) }}">
+            <button class="btn small" type="submit">Mark paid</button>
+          </form>
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="note-block"><p>Nothing awaiting settlement.</p></div>
+    {% endif %}
+
+    <div class="disclaimer" style="max-width:none">
+      <p><strong>Marking an order paid releases it into the reader's queue.</strong> Until then it
+      is withheld — nobody should spend an hour writing a reading that was never paid for.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

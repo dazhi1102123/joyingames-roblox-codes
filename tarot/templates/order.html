@@ -12,12 +12,26 @@
     <div class="status-strip status-{{ order.status }}">
       <div><span class="k">Status</span><span class="v">{{ order.status }}</span></div>
       <div><span class="k">Requested</span><span class="v">{{ order.created_at[:10] }}</span></div>
+      <div><span class="k">Payment</span><span class="v">{{ order.payment_status }}</span></div>
       <div><span class="k">{{ 'Delivered' if order.status == 'delivered' else 'Due by' }}</span>
            <span class="v">{{ (order.delivered_at[:16] if order.status == 'delivered' else order.due_at.strftime('%Y-%m-%d %H:%M')) | replace('T',' ') }}</span></div>
       <div><span class="k">Price</span><span class="v">€{{ order.price }}</span></div>
     </div>
 
-    {% if order.status != 'delivered' and order.overdue %}
+    {% if order.payment_status != 'paid' %}
+    <div class="pay-strip">
+      <div>
+        <p class="eyebrow">Not yet paid</p>
+        <p>Your cards are held and your reader has not started. Settling the €{{ order.price }}
+           releases it into their queue.</p>
+      </div>
+      <form method="post" action="{{ url_for('order_pay', token=order.token) }}">
+        <button class="btn" type="submit">Pay €{{ order.price }}</button>
+      </form>
+    </div>
+    {% endif %}
+
+    {% if order.status != 'delivered' and order.overdue and order.payment_status == 'paid' %}
     <div class="note-block" style="margin-top:20px">
       <p><strong>This one is past its due time.</strong> That is on us, not on you. If it stays
          late, reply to whatever channel you arranged with {{ order.reader_name }}.</p>

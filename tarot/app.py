@@ -36,6 +36,7 @@ from markupsafe import escape
 
 import cardart
 import correspondences
+import payments
 import personal
 import store
 from tarot_data import (
@@ -84,6 +85,13 @@ app.config.update(
     # submits the 484 major-on-major pages.
     COMBO_SITEMAP_SCOPE=os.environ.get("COMBO_SITEMAP_SCOPE", "majors"),
     HUMAN_READINGS=os.environ.get("HUMAN_READINGS", "1") == "1",
+    PAYMENT_PROVIDER=os.environ.get("PAYMENT_PROVIDER", "manual"),
+    ADMIN_KEY=os.environ.get("ADMIN_KEY", ""),
+    WAFFO_API_KEY=os.environ.get("WAFFO_API_KEY", ""),
+    WAFFO_STORE_SLUG=os.environ.get("WAFFO_STORE_SLUG", ""),
+    WAFFO_ENVIRONMENT=os.environ.get("WAFFO_ENVIRONMENT", "sandbox"),
+    WAFFO_PRODUCT_ID=os.environ.get("WAFFO_PRODUCT_ID", ""),
+    WAFFO_WEBHOOK_SECRET=os.environ.get("WAFFO_WEBHOOK_SECRET", ""),
 )
 
 # A missing key is survivable in development and not in production: sessions
@@ -965,7 +973,7 @@ def reader_request(slug):
     drawn = draw_cards(spread["count"])
     token = store.create_order(reader, focus_key, situation, tried, birth_ymd,
                                spread_slug, drawn)
-    return redirect(url_for("order_view", token=token))
+    return redirect(_start_checkout(store.get_order(token)))
 
 
 @app.route("/order/<token>")
@@ -1075,6 +1083,130 @@ def desk_action(token, action):
 
 
 # ---------------------------------------------------------------------------
+# Payment
+#
+# The provider is chosen by config and reached only through this interface, so
+# swapping it is an env change. That matters here more than in most projects:
+# this sells in a category processors restrict, so the provider will change at
+# least once, probably in a hurry, with live orders in the queue.
+# ---------------------------------------------------------------------------
+
+def _provider():
+    try:
+        return payments.get_provider(app.config)
+    except payments.PaymentError as exc:
+        app.logger.error("payment provider unavailable: %s", exc)
+        return payments.ManualProvider(app.config)
+
+
+def _start_checkout(order):
+    """Returns where to send the buyer next."""
+    provider = _provider()
+    order_url = url_for("order_view", token=order["token"], _external=True)
+    try:
+        checkout = provider.create_checkout(
+            order, return_url=order_url,
+            cancel_url=url_for("reader_profile", slug=order["reader_slug"], _external=True))
+    except payments.PaymentError as exc:
+        # A failed checkout must not lose the order — it is already drawn and
+        # recorded, and the buyer can retry from the order page.
+        app.logger.error("checkout failed for %s: %s", order["token"], exc)
+        return order_url
+    store.set_payment(order["token"], checkout.status, checkout.reference)
+    return checkout.url
+
+
+@app.post("/order/<token>/pay")
+def order_pay(token):
+    _require_readings()
+    order = store.get_order(token)
+    if not order:
+        abort(404)
+    if order["payment_status"] == payments.PAID:
+        return redirect(url_for("order_view", token=token))
+    return redirect(_start_checkout(order))
+
+
+@app.post("/webhooks/<provider_name>")
+def payment_webhook(provider_name):
+    """Provider callbacks.
+
+    Fails closed at every step. An unsigned or unrecognised event is discarded
+    with a 400 rather than trusted — an endpoint that accepts a forged 'paid'
+    is a way to get paid work for free.
+    """
+    provider = _provider()
+    if provider_name != provider.name:
+        abort(404)
+
+    raw = request.get_data()
+    if len(raw) > 64 * 1024:
+        abort(413)
+
+    result = provider.verify_webhook(dict(request.headers), raw)
+    if not result:
+        app.logger.warning("rejected %s webhook (signature or shape)", provider_name)
+        abort(400)
+
+    reference, status = result
+    if status not in payments.PAYMENT_STATUSES:
+        abort(400)
+    order = store.order_by_payment_ref(reference)
+    if not order:
+        app.logger.warning("%s webhook for unknown reference", provider_name)
+        abort(404)
+
+    store.set_payment(order["token"], status)
+    app.logger.info("order %s -> %s", order["token"], status)
+    return jsonify({"ok": True})
+
+
+# ---- operator view, for manual settlement --------------------------------
+
+def _is_admin():
+    key = app.config.get("ADMIN_KEY")
+    return bool(key) and session.get("admin_key") == key
+
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+    _require_readings()
+    if not app.config.get("ADMIN_KEY"):
+        abort(404)          # no key configured, no admin surface
+
+    error = None
+    if request.method == "POST" and "key" in request.form:
+        if secrets.compare_digest(request.form["key"], app.config["ADMIN_KEY"]):
+            session["admin_key"] = app.config["ADMIN_KEY"]
+            return redirect(url_for("admin"))
+        error = "That key was not recognised."
+
+    if not _is_admin():
+        return render_template("admin_signin.html", error=error, noindex=True,
+                               title="Operator", description="Sign in.")
+
+    return render_template(
+        "admin.html",
+        noindex=True,
+        orders=store.unpaid_orders(),
+        provider=_provider().name,
+        title="Awaiting settlement",
+        description="Orders not yet paid.",
+    )
+
+
+@app.post("/admin/<token>/paid")
+def admin_mark_paid(token):
+    _require_readings()
+    if not _is_admin():
+        abort(403)
+    if not store.get_order(token):
+        abort(404)
+    store.set_payment(token, payments.PAID, f"manual:{token}")
+    return redirect(url_for("admin"))
+
+
+# ---------------------------------------------------------------------------
 # Crawl surface
 # ---------------------------------------------------------------------------
 
@@ -1162,6 +1294,8 @@ def robots():
         "Disallow: /my-deck",
         "Disallow: /order/",
         "Disallow: /desk",
+        "Disallow: /admin",
+        "Disallow: /webhooks/",
         "",
         f"Sitemap: {app.config['SITE_URL']}/sitemap.xml",
     ]

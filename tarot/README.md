@@ -143,21 +143,47 @@ The desk shows the generated reading as a collapsed draft. That is a starting
 point, not a shortcut: it goes out under a person's name, and the whole reason
 someone paid for this tier is that a person read it.
 
-### Payment is not wired, and that is not an oversight
+### Payment
 
-Paying a person for a psychic reading is the exact category Stripe restricts —
-the physical-goods route that works for a bracelet does not cover it, and a
-platform that collects and forwards money on a reader's behalf raises payment-
-institution questions on top. So the order carries a price and settlement happens
-out of band. Two ways out, both a decision rather than code:
+Providers live behind one interface in `payments.py` and are chosen with
+`PAYMENT_PROVIDER`. That indirection matters more here than in most projects:
+this sells in a category processors restrict, so the provider will change at
+least once, probably in a hurry, with live orders in the queue.
 
-- **Directory model.** Readers are paid directly and the site charges them for
-  the listing. The site never processes a reading payment. Simplest, and it keeps
-  the restricted category out of your merchant account entirely.
-- **High-risk acquirer.** The site collects and pays out. Higher ARPU and far more
-  compliance surface, including money-flow rules that vary by jurisdiction.
+**`manual`** (default) is a complete path, not a stub. An order is created
+unpaid, money moves out of band, and an operator confirms it at `/admin`
+(gated by `ADMIN_KEY`; unset means the route does not exist).
 
-Set `HUMAN_READINGS=0` to hide the whole feature until that is settled.
+**`waffo`** integrates Waffo as Merchant of Record. **This adapter is written
+against an unverified specification** — docs.waffo.com and docs.waffo.ai are
+unreachable from the build environment, so the request shape comes from public
+secondary sources rather than the API reference. Every guess is marked
+`UNVERIFIED` in `payments.py` and listed in `WAFFO_OPEN_QUESTIONS`. Before
+switching:
+
+```bash
+python payments.py check      # one real request; the error names the wrong guess
+```
+
+Two Waffo questions are structural rather than code, and neither is answered by
+that check:
+
+- **Merchant of Record means Waffo is the seller of record for what *you* sell.**
+  Paying independent readers a share is a payout problem MoR platforms generally
+  exclude. Waffo can plausibly cover a report or a physical product; it probably
+  cannot cover paying a reader their cut. Readers as invoicing contractors is an
+  accounting arrangement, not something an integration provides.
+- **Category approval.** Waffo's advertised verticals are gaming, AI and SaaS.
+  Tarot sits where most MoR platforms restrict. Get written confirmation before
+  building on it, or this is the Stripe problem again with a different logo.
+
+Payment gates the work, not the draw: cards are drawn immediately, but an order
+is withheld from the reader's queue until paid, and `store.set_status` refuses to
+claim an unpaid order even with a valid token — nobody should spend an hour on a
+reading that was never paid for. Delivery is deliberately *not* gated, so a
+refund after the fact cannot trap a reading the reader already wrote.
+
+Set `HUMAN_READINGS=0` to hide the whole feature.
 
 ## The claims boundary
 
