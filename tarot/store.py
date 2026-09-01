@@ -79,14 +79,25 @@ INDEXES = """
 CREATE INDEX IF NOT EXISTS idx_orders_reader  ON orders(reader_id, status);
 CREATE INDEX IF NOT EXISTS idx_orders_expires ON orders(expires_at);
 CREATE INDEX IF NOT EXISTS idx_orders_payref  ON orders(payment_ref);
+CREATE INDEX IF NOT EXISTS idx_orders_payout  ON orders(payout_status, reader_id);
 """
 
-# Columns added after the first release. Applied additively on every start,
-# so upgrading is just deploying.
+# Columns added after the first release, as (table, column, ddl). Applied
+# additively on every start, so upgrading is just deploying.
 MIGRATIONS = (
-    ("payment_status", "TEXT NOT NULL DEFAULT 'unpaid'"),
-    ("payment_ref", "TEXT NOT NULL DEFAULT ''"),
+    ("orders", "payment_status", "TEXT NOT NULL DEFAULT 'unpaid'"),
+    ("orders", "payment_ref", "TEXT NOT NULL DEFAULT ''"),
+    # The provider settles to one payee, so what each reader is owed has to be
+    # tracked here. Snapshotted per order: a later rate change must not rewrite
+    # what was already earned.
+    ("readers", "payout_cents", "INTEGER NOT NULL DEFAULT 0"),
+    ("orders", "reader_fee_cents", "INTEGER NOT NULL DEFAULT 0"),
+    ("orders", "payout_status", "TEXT NOT NULL DEFAULT 'owed'"),
+    ("orders", "paid_out_at", "TEXT"),
 )
+
+# What a reader keeps when no explicit payout is configured.
+DEFAULT_PAYOUT_SHARE = 0.70
 
 # Every state an order can be in, and what may follow it. Anything not listed
 # here is rejected rather than silently written.
@@ -118,11 +129,16 @@ def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with connect() as c:
         c.executescript(SCHEMA)
-        # SQLite has no ADD COLUMN IF NOT EXISTS, so check the table first.
-        have = {r["name"] for r in c.execute("PRAGMA table_info(orders)")}
-        for col, ddl in MIGRATIONS:
-            if col not in have:
-                c.execute(f"ALTER TABLE orders ADD COLUMN {col} {ddl}")
+        # SQLite has no ADD COLUMN IF NOT EXISTS, so check each table first.
+        for table in ("orders", "readers"):
+            have = {r["name"] for r in c.execute(f"PRAGMA table_info({table})")}
+            for tbl, col, ddl in MIGRATIONS:
+                if tbl == table and col not in have:
+                    c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {ddl}")
+        # Backfill payouts for readers created before the column existed.
+        c.execute(
+            "UPDATE readers SET payout_cents = CAST(ROUND(price_cents * ?) AS INTEGER) "
+            "WHERE payout_cents = 0", (DEFAULT_PAYOUT_SHARE,))
         c.executescript(INDEXES)
 
 
@@ -131,16 +147,22 @@ def init_db():
 # ---------------------------------------------------------------------------
 
 def add_reader(slug, name, tagline="", bio="", approach="", specialties=None,
-               price_cents=3500, currency="EUR", turnaround_h=48, capacity=5):
+               price_cents=3500, currency="EUR", turnaround_h=48, capacity=5,
+               payout_cents=None):
+    if payout_cents is None:
+        # round, not truncate: 5500 * 0.70 is 3849.999... in binary float,
+        # and int() would quietly shortchange the reader by a cent.
+        payout_cents = round(price_cents * DEFAULT_PAYOUT_SHARE)
     with connect() as c:
         c.execute(
             """INSERT INTO readers
                (slug, name, tagline, bio, approach, specialties, price_cents,
-                currency, turnaround_h, capacity, access_key, created_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                currency, turnaround_h, capacity, access_key, created_at,
+                payout_cents)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (slug, name, tagline, bio, approach, json.dumps(specialties or []),
              price_cents, currency, turnaround_h, capacity,
-             secrets.token_urlsafe(24), _now()),
+             secrets.token_urlsafe(24), _now(), payout_cents),
         )
         return c.execute("SELECT * FROM readers WHERE slug = ?", (slug,)).fetchone()
 
@@ -179,6 +201,8 @@ def _reader(row):
     d = dict(row)
     d["specialties"] = json.loads(d["specialties"] or "[]")
     d["price"] = f"{d['price_cents'] / 100:.2f}"
+    d["payout"] = f"{d.get('payout_cents', 0) / 100:.2f}"
+    d["margin"] = f"{(d['price_cents'] - d.get('payout_cents', 0)) / 100:.2f}"
     return d
 
 
@@ -204,11 +228,12 @@ def create_order(reader, focus, situation, tried, birth_ymd, spread_slug, drawn)
         c.execute(
             """INSERT INTO orders
                (token, reader_id, status, focus, situation, tried, birth_ymd,
-                spread_slug, drawn, price_cents, currency, created_at, expires_at)
-               VALUES (?,?,'open',?,?,?,?,?,?,?,?,?,?)""",
+                spread_slug, drawn, price_cents, currency, created_at, expires_at,
+                reader_fee_cents)
+               VALUES (?,?,'open',?,?,?,?,?,?,?,?,?,?,?)""",
             (token, reader["id"], focus, situation, tried, birth_ymd, spread_slug,
              json.dumps(drawn), reader["price_cents"], reader["currency"],
-             _now(), expires),
+             _now(), expires, reader.get("payout_cents", 0)),
         )
     return token
 
@@ -294,6 +319,7 @@ def _order(row):
     d = dict(row)
     d["drawn"] = json.loads(d["drawn"])
     d["price"] = f"{d['price_cents'] / 100:.2f}"
+    d["fee"] = f"{d.get('reader_fee_cents', 0) / 100:.2f}"
     created = datetime.fromisoformat(d["created_at"])
     d["due_at"] = created + timedelta(hours=d["turnaround_h"])
     d["overdue"] = (d["status"] in ("open", "claimed")
@@ -364,3 +390,74 @@ def purge_expired(force=False):
     with connect() as c:
         cur = c.execute("DELETE FROM orders WHERE expires_at < ?", (_now(),))
         return cur.rowcount
+
+
+# ---------------------------------------------------------------------------
+# Payout ledger
+#
+# The provider settles to a single payee and does not split, so the money owed
+# to each reader is tracked here and paid out of band. That makes the site the
+# seller and readers subcontractors — a studio, not a marketplace — which is a
+# legal posture as much as a data model.
+# ---------------------------------------------------------------------------
+
+def payouts_owed():
+    """Delivered readings not yet paid out, grouped by reader."""
+    with connect() as c:
+        rows = c.execute(
+            """SELECT r.id, r.slug, r.name, r.currency,
+                      COUNT(*)                AS jobs,
+                      SUM(o.reader_fee_cents) AS owed_cents
+               FROM orders o JOIN readers r ON r.id = o.reader_id
+               WHERE o.status = 'delivered'
+                 AND o.payment_status = 'paid'
+                 AND o.payout_status = 'owed'
+               GROUP BY r.id ORDER BY owed_cents DESC""").fetchall()
+        out = []
+        for row in rows:
+            d = dict(row)
+            d["owed"] = f"{(d['owed_cents'] or 0) / 100:.2f}"
+            out.append(d)
+        return out
+
+
+def reader_earnings(reader_id):
+    """What one reader has earned, split by whether it has been paid out."""
+    with connect() as c:
+        row = c.execute(
+            """SELECT
+                 COALESCE(SUM(CASE WHEN payout_status = 'owed'
+                                   THEN reader_fee_cents END), 0) AS owed,
+                 COALESCE(SUM(CASE WHEN payout_status = 'paid'
+                                   THEN reader_fee_cents END), 0) AS paid,
+                 COUNT(*) AS delivered
+               FROM orders
+               WHERE reader_id = ? AND status = 'delivered'
+                 AND payment_status = 'paid'""", (reader_id,)).fetchone()
+        return {
+            "owed": f"{row['owed'] / 100:.2f}",
+            "paid": f"{row['paid'] / 100:.2f}",
+            "delivered": row["delivered"],
+        }
+
+
+def settle_reader(reader_id):
+    """Mark everything currently owed to one reader as paid out.
+
+    Returns (jobs, cents). Only touches rows that are delivered AND paid by the
+    customer — never advances money against an order that has not settled.
+    """
+    with connect() as c:
+        row = c.execute(
+            """SELECT COUNT(*) AS jobs, COALESCE(SUM(reader_fee_cents), 0) AS cents
+               FROM orders WHERE reader_id = ? AND status = 'delivered'
+                 AND payment_status = 'paid' AND payout_status = 'owed'""",
+            (reader_id,)).fetchone()
+        if not row["jobs"]:
+            return 0, 0
+        c.execute(
+            """UPDATE orders SET payout_status = 'paid', paid_out_at = ?
+               WHERE reader_id = ? AND status = 'delivered'
+                 AND payment_status = 'paid' AND payout_status = 'owed'""",
+            (_now(), reader_id))
+        return row["jobs"], row["cents"]

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="card-page">
+  <div class="wrap">
+    <div class="desk-head">
+      <div>
+        <p class="eyebrow">Operator</p>
+        <h1 style="font-size:clamp(28px,4vw,38px);line-height:1.08">Reader payouts</h1>
+        <p class="mono-note">delivered &amp; paid by the customer, not yet paid out</p>
+      </div>
+      <a class="btn ghost small" href="{{ url_for('admin') }}">Settlement queue</a>
+    </div>
+
+    {% if owed %}
+    <div class="queue">
+      {% for r in owed %}
+      <div class="q-row" style="cursor:default">
+        <span class="q-status s-open">{{ r.jobs }} job{{ 's' if r.jobs != 1 else '' }}</span>
+        <span class="q-focus">{{ r.currency }}</span>
+        <span class="q-text"><b>{{ r.name }}</b><br>
+          <span class="mono-note">owed &euro;{{ r.owed }}</span></span>
+        <span class="q-due">
+          <form method="post" action="{{ url_for('admin_settle', slug=r.slug) }}">
+            <button class="btn small" type="submit">Mark paid out</button>
+          </form>
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="note-block"><p>Nothing owed.</p></div>
+    {% endif %}
+
+    <div class="disclaimer" style="max-width:none">
+      <p><strong>This ledger is the record, not a payment rail.</strong> The provider settles the
+      full amount to one payee and does not split, so readers invoice and are paid separately.
+      Marking paid out here records that it happened — it does not move money.</p>
+      <p style="margin-top:12px"><strong>That makes this a studio, not a marketplace.</strong> The
+      site is the seller, readers are subcontractors, and the site owes them for delivered work
+      whether or not the customer later refunds. Readers working exclusively and to a fixed
+      schedule can be reclassified as employees under German law — worth a look at how the
+      arrangement is actually run, not just how it is written.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

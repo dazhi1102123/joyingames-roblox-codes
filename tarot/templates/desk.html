@@ -6,12 +6,18 @@
       <div>
         <p class="eyebrow">Reader desk</p>
         <h1 style="font-size:clamp(28px,4vw,40px);line-height:1.08">{{ reader.name }}</h1>
-        <p class="mono-note">€{{ reader.price }} per reading &middot; {{ reader.turnaround_h }}h turnaround
-           &middot; capacity {{ orders | length }}/{{ reader.capacity }}</p>
+        <p class="mono-note">&euro;{{ reader.payout }} to you per reading &middot;
+           {{ reader.turnaround_h }}h turnaround &middot; capacity {{ orders | length }}/{{ reader.capacity }}</p>
       </div>
       <form method="post" action="{{ url_for('desk_signout') }}">
         <button class="btn ghost small" type="submit">Sign out</button>
       </form>
+    </div>
+
+    <div class="stat-row" style="margin-bottom:34px">
+      <div class="stat"><span class="v">{{ earnings.delivered }}</span><span class="k">Delivered</span></div>
+      <div class="stat"><span class="v">&euro;{{ earnings.owed }}</span><span class="k">Owed to you</span></div>
+      <div class="stat"><span class="v">&euro;{{ earnings.paid }}</span><span class="k">Paid out</span></div>
     </div>
 
     <div class="suit-head"><h2>Queue</h2><span class="note">{{ orders | length }} open</span></div>

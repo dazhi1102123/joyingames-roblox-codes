@@ -22,13 +22,17 @@ is marked ``UNVERIFIED`` and listed in ``WAFFO_OPEN_QUESTIONS``. Run
 against a real key before trusting any of it. Until that passes, leave
 ``PAYMENT_PROVIDER=manual``.
 
-Two things about Waffo that are structural rather than code:
+Two questions were put to Waffo and answered:
 
-  * Merchant of Record means Waffo is the seller of record for what *you* sell.
-    Paying independent readers a share is a payout problem that MoR platforms
-    generally exclude — it is not something an integration can paper over.
-  * Their advertised verticals are gaming, AI and SaaS. Tarot sits in a category
-    most MoR platforms restrict. Get written confirmation before building on it.
+  * **Category.** Tarot and spiritual content are permitted — with WeChat Pay
+    excluded. That exclusion is enforced here (``WAFFO_EXCLUDED_METHODS``) rather
+    than left to the dashboard, so it travels with the code and is visible in
+    review. It also means mainland Chinese buyers lose their dominant method,
+    which is an argument for leading with the English-language market.
+  * **Splits.** Waffo does not support paying a third party a share. It settles
+    the full amount to one payee, so the site is the seller and readers are
+    subcontractors invoicing it — a studio, not a marketplace. What each reader
+    is owed is tracked in ``store.py`` and paid out of band.
 """
 
 from __future__ import annotations
@@ -107,7 +111,8 @@ WAFFO_OPEN_QUESTIONS = [
     "Webhook signature: header name, algorithm, and whether the signed payload "
     "is the raw body alone or is prefixed with a timestamp.",
     "Webhook event names for a completed payment and for a refund.",
-    "Whether tarot / divination is a permitted category at all.",
+    "The field name for excluding a payment method — excludedPaymentMethods "
+    "is a guess, and getting it wrong silently re-enables WeChat Pay.",
 ]
 
 
@@ -136,6 +141,13 @@ class WaffoProvider:
         self.environment = config.get("WAFFO_ENVIRONMENT", "sandbox")
         self.webhook_secret = config.get("WAFFO_WEBHOOK_SECRET", "")
         self.product_id = config.get("WAFFO_PRODUCT_ID", "")
+        # Waffo permit this category on the condition that WeChat Pay is not
+        # offered. Enforced in the request, not only in their dashboard.
+        self.excluded_methods = [
+            m.strip() for m in
+            (config.get("WAFFO_EXCLUDED_METHODS") or "wechat_pay").split(",")
+            if m.strip()
+        ]
         if not self.api_key:
             raise PaymentError(
                 "PAYMENT_PROVIDER=waffo but WAFFO_API_KEY is unset. "
@@ -175,6 +187,7 @@ class WaffoProvider:
             "referenceId": order["token"],
             "successUrl": return_url,
             "cancelUrl": cancel_url,
+            "excludedPaymentMethods": self.excluded_methods,   # UNVERIFIED name
         }
         data = self._post(self.CREATE_SESSION, payload)
 
@@ -275,6 +288,7 @@ def check(config=None):
     provider = WaffoProvider(config)
     print(f"\nPOST {provider.BASE_URL}{provider.CREATE_SESSION}")
     print(f"  environment: {provider.environment}")
+    print(f"  excluding:   {', '.join(provider.excluded_methods) or '(nothing)'}")
     fake = {"token": "check-" + "0" * 8, "price_cents": 100, "currency": "EUR"}
     try:
         result = provider.create_checkout(
@@ -286,8 +300,12 @@ def check(config=None):
         return 1
 
     print(f"\nOK  redirect: {result.url[:80]}\n    reference: {result.reference}")
-    print("\nStill unconfirmed by this check: webhook signature scheme and event "
-          "names. Send a sandbox payment and inspect a real delivery.")
+    print("\nStill unconfirmed by this check:")
+    print("  - webhook signature scheme and event names — send a sandbox payment")
+    print("    and inspect a real delivery.")
+    print("  - that the exclusion was honoured. OPEN THE CHECKOUT PAGE and confirm")
+    print("    WeChat Pay is absent. A silently ignored field looks like success")
+    print("    here and breaks the category approval in production.")
     return 0
 
 

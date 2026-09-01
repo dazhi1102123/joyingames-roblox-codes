@@ -1024,6 +1024,7 @@ def desk():
         reader=reader,
         orders=store.orders_for_reader(reader["id"]),
         recent=store.orders_for_reader(reader["id"], statuses=("delivered",))[:5],
+        earnings=store.reader_earnings(reader["id"]),
         title=f"Desk — {reader['name']}",
         description="Your queue.",
     )
@@ -1193,6 +1194,38 @@ def admin():
         title="Awaiting settlement",
         description="Orders not yet paid.",
     )
+
+
+@app.route("/admin/payouts")
+def admin_payouts():
+    """What is owed to each reader.
+
+    The provider settles to one payee and does not split, so this ledger is the
+    only record of what the site owes. Money moves by invoice, out of band.
+    """
+    _require_readings()
+    if not _is_admin():
+        return redirect(url_for("admin"))
+    return render_template(
+        "admin_payouts.html",
+        noindex=True,
+        owed=store.payouts_owed(),
+        title="Reader payouts",
+        description="What is owed to each reader.",
+    )
+
+
+@app.post("/admin/payouts/<slug>/settle")
+def admin_settle(slug):
+    _require_readings()
+    if not _is_admin():
+        abort(403)
+    reader = store.get_reader(slug)
+    if not reader:
+        abort(404)
+    jobs, cents = store.settle_reader(reader["id"])
+    app.logger.info("settled %s: %s jobs, %s cents", slug, jobs, cents)
+    return redirect(url_for("admin_payouts"))
 
 
 @app.post("/admin/<token>/paid")

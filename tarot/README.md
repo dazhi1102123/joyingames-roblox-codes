@@ -165,17 +165,36 @@ switching:
 python payments.py check      # one real request; the error names the wrong guess
 ```
 
-Two Waffo questions are structural rather than code, and neither is answered by
-that check:
+Two questions were put to Waffo and answered, and both shape the product rather
+than just the code:
 
-- **Merchant of Record means Waffo is the seller of record for what *you* sell.**
-  Paying independent readers a share is a payout problem MoR platforms generally
-  exclude. Waffo can plausibly cover a report or a physical product; it probably
-  cannot cover paying a reader their cut. Readers as invoicing contractors is an
-  accounting arrangement, not something an integration provides.
-- **Category approval.** Waffo's advertised verticals are gaming, AI and SaaS.
-  Tarot sits where most MoR platforms restrict. Get written confirmation before
-  building on it, or this is the Stripe problem again with a different logo.
+- **Category: permitted, with WeChat Pay excluded.** Enforced in the checkout
+  request via `WAFFO_EXCLUDED_METHODS`, not left to a dashboard setting, so it
+  travels with the code. `payments.py check` cannot confirm the field name was
+  right — a silently ignored field looks identical to success — so open a real
+  checkout and confirm WeChat Pay is absent before going live. Losing WeChat Pay
+  also costs mainland Chinese buyers their dominant method, which is another
+  argument for leading with the English-language market.
+- **Splits: not supported.** Waffo settles the full amount to one payee. That
+  makes the site the seller and readers subcontractors who invoice it — a studio,
+  not a marketplace — and it is why the payout ledger below exists.
+
+### The payout ledger
+
+Because the provider will not split, what each reader is owed is tracked in the
+database and paid out of band. Each order snapshots the reader's fee at creation,
+so changing a reader's rate never rewrites what was already earned. `/admin/payouts`
+shows what is owed per reader and records settlement; it is a ledger, not a
+payment rail — marking paid out says money moved, it does not move it.
+
+Two consequences that are not code:
+
+- The site owes readers for delivered work **whether or not the customer later
+  refunds**. That risk sits with you now, not with a marketplace intermediary.
+- Readers working exclusively, to a fixed schedule, and integrated into your
+  processes can be reclassified as employees under German law
+  (*Scheinselbständigkeit*). How the arrangement is actually run matters more
+  than how the contract is worded.
 
 Payment gates the work, not the draw: cards are drawn immediately, but an order
 is withheld from the reader's queue until paid, and `store.set_status` refuses to

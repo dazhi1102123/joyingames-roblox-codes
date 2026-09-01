@@ -9,6 +9,7 @@
         <p class="mono-note">provider: {{ provider }}
           {% if provider == 'manual' %}&middot; money moves out of band; confirm it here{% endif %}</p>
       </div>
+      <a class="btn ghost small" href="{{ url_for('admin_payouts') }}">Reader payouts</a>
     </div>
 
     {% if orders %}

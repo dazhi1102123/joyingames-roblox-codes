@@ -58,7 +58,9 @@ def main():
             continue
         store.add_reader(**spec)
         reader = store.get_reader(spec["slug"])
-        print(f"  + {reader['name']:<18} /desk key: {reader['access_key']}")
+        print(f"  + {reader['name']:<18} €{reader['price']} → €{reader['payout']} "
+              f"to reader (margin €{reader['margin']})")
+        print(f"    {'':<18} /desk key: {reader['access_key']}")
     print("\nKeep these keys out of version control. Rotate by re-issuing the reader.")
     return 0
 
