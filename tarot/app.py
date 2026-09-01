@@ -25,8 +25,10 @@ from flask import (
     Response,
     abort,
     jsonify,
+    redirect,
     render_template,
     request,
+    session,
     stream_with_context,
     url_for,
 )
@@ -35,6 +37,7 @@ from markupsafe import escape
 import cardart
 import correspondences
 import personal
+import store
 from tarot_data import (
     CARDS,
     CARDS_BY_SLUG,
@@ -80,7 +83,22 @@ app.config.update(
     # the roadmap stages them behind an indexation check, so the default only
     # submits the 484 major-on-major pages.
     COMBO_SITEMAP_SCOPE=os.environ.get("COMBO_SITEMAP_SCOPE", "majors"),
+    HUMAN_READINGS=os.environ.get("HUMAN_READINGS", "1") == "1",
 )
+
+# A missing key is survivable in development and not in production: sessions
+# would silently reset on every restart, signing readers out mid-queue.
+app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+if not os.environ.get("SECRET_KEY"):
+    app.logger.warning("SECRET_KEY unset — reader sessions will not survive a restart")
+
+store.init_db()
+
+
+@app.before_request
+def _retention():
+    """Expired orders are deleted on the way past, at most hourly."""
+    store.purge_expired()
 
 _openai_client = None
 if OpenAI and app.config["OPENAI_API_KEY"]:
@@ -856,6 +874,207 @@ def daily():
 
 
 # ---------------------------------------------------------------------------
+# Routes — human readings
+#
+# Deliberately a queue with a hand-picked roster, not a marketplace. At this
+# scale ratings are noise and a booking calendar is overhead; what a buyer
+# actually wants is a named person and a delivery date. Cards are drawn by the
+# site the moment a request is made, so the buyer sees their spread immediately
+# and waits only for the interpretation.
+# ---------------------------------------------------------------------------
+
+def _require_readings():
+    if not app.config["HUMAN_READINGS"]:
+        abort(404)
+
+
+def _birth_from(ymd):
+    if not ymd:
+        return None
+    y, m, d = (int(x) for x in ymd.split("-"))
+    p_card, s_card = personal.birth_cards(y, m, d)
+    return {"personality": p_card, "soul": s_card,
+            "same": p_card["slug"] == s_card["slug"]}
+
+
+@app.route("/readers")
+def readers_index():
+    _require_readings()
+    roster = store.list_readers()
+    for r in roster:
+        r["load"] = store.reader_load(r["id"])
+        r["full"] = r["load"] >= r["capacity"]
+    return render_template(
+        "readers.html",
+        roster=roster,
+        title=f"Readings by a Person — {app.config['SITE_NAME']}",
+        description=(
+            "A small roster of tarot readers who write your reading by hand. "
+            "Your cards are drawn immediately; the reading arrives within a day or two."
+        ),
+    )
+
+
+@app.route("/readers/<slug>")
+def reader_profile(slug):
+    _require_readings()
+    reader = store.get_reader(slug)
+    if not reader or not reader["active"]:
+        abort(404)
+    reader["load"] = store.reader_load(reader["id"])
+    reader["full"] = reader["load"] >= reader["capacity"]
+    return render_template(
+        "reader.html",
+        reader=reader,
+        focus_areas=FOCUS_AREAS,
+        situation_max=SITUATION_MAX,
+        title=f"{reader['name']} — Tarot Reading by Hand",
+        description=reader["tagline"] or f"A written tarot reading by {reader['name']}.",
+    )
+
+
+@app.post("/readers/<slug>/request")
+def reader_request(slug):
+    _require_readings()
+    reader = store.get_reader(slug)
+    if not reader or not reader["active"]:
+        abort(404)
+    if store.reader_load(reader["id"]) >= reader["capacity"]:
+        abort(409)
+
+    form = request.form
+    focus_key = form.get("focus", "general")
+    if focus_key not in FOCUS_BY_KEY:
+        focus_key = "general"
+    _, _, spread_slug, _ = FOCUS_BY_KEY[focus_key]
+    spread = SPREADS[spread_slug]
+
+    situation = " ".join((form.get("situation") or "").split())[:SITUATION_MAX]
+    if not situation:
+        abort(400)
+    tried = " ".join((form.get("tried") or "").split())[:SITUATION_MAX]
+
+    birth_ymd = ""
+    try:
+        y, m, d = int(form["by"]), int(form["bm"]), int(form["bd"])
+        if y in personal.YEAR_RANGE and 1 <= m <= 12 and 1 <= d <= personal.MONTH_DAYS[m]:
+            birth_ymd = f"{y:04d}-{m:02d}-{d:02d}"
+    except (KeyError, ValueError):
+        birth_ymd = ""
+
+    drawn = draw_cards(spread["count"])
+    token = store.create_order(reader, focus_key, situation, tried, birth_ymd,
+                               spread_slug, drawn)
+    return redirect(url_for("order_view", token=token))
+
+
+@app.route("/order/<token>")
+def order_view(token):
+    _require_readings()
+    order = store.get_order(token)
+    if not order:
+        abort(404)
+    spread = SPREADS[order["spread_slug"]]
+    return render_template(
+        "order.html",
+        noindex=True,
+        order=order,
+        spread=spread,
+        cards=hydrate(order["drawn"], spread),
+        birth=_birth_from(order["birth_ymd"]),
+        focus_label=FOCUS_BY_KEY[order["focus"]][1],
+        title=f"Your reading with {order['reader_name']} — {app.config['SITE_NAME']}",
+        description="Your requested reading.",
+    )
+
+
+# ---- reader desk ----------------------------------------------------------
+
+def _current_reader():
+    return store.reader_by_key(session.get("reader_key", ""))
+
+
+@app.route("/desk", methods=["GET", "POST"])
+def desk():
+    _require_readings()
+    error = None
+    if request.method == "POST":
+        reader = store.reader_by_key(request.form.get("key", "").strip())
+        if reader:
+            session["reader_key"] = reader["access_key"]
+            return redirect(url_for("desk"))
+        error = "That key was not recognised."
+
+    reader = _current_reader()
+    if not reader:
+        return render_template("desk_signin.html", error=error, noindex=True,
+                               title="Reader desk", description="Reader sign-in.")
+
+    return render_template(
+        "desk.html",
+        noindex=True,
+        reader=reader,
+        orders=store.orders_for_reader(reader["id"]),
+        recent=store.orders_for_reader(reader["id"], statuses=("delivered",))[:5],
+        title=f"Desk — {reader['name']}",
+        description="Your queue.",
+    )
+
+
+@app.post("/desk/signout")
+def desk_signout():
+    session.pop("reader_key", None)
+    return redirect(url_for("desk"))
+
+
+@app.route("/desk/<token>")
+def desk_order(token):
+    _require_readings()
+    reader = _current_reader()
+    if not reader:
+        return redirect(url_for("desk"))
+    order = store.get_order(token)
+    if not order or order["reader_id"] != reader["id"]:
+        abort(404)
+
+    spread = SPREADS[order["spread_slug"]]
+    cards = hydrate(order["drawn"], spread)
+    return render_template(
+        "desk_order.html",
+        noindex=True,
+        reader=reader,
+        order=order,
+        spread=spread,
+        cards=cards,
+        birth=_birth_from(order["birth_ymd"]),
+        focus_label=FOCUS_BY_KEY[order["focus"]][1],
+        # A starting point the reader edits — never something that ships
+        # unread under a person's name.
+        draft="\n\n".join(compose_reading(cards, spread, order["situation"])),
+        title=f"Order — {order['reader_name']}",
+        description="Write this reading.",
+    )
+
+
+@app.post("/desk/<token>/<action>")
+def desk_action(token, action):
+    _require_readings()
+    reader = _current_reader()
+    if not reader:
+        return redirect(url_for("desk"))
+    if action not in ("claim", "release", "deliver"):
+        abort(400)
+
+    target = {"claim": "claimed", "release": "open", "deliver": "delivered"}[action]
+    if not store.set_status(token, target,
+                            reading=request.form.get("reading", ""),
+                            reader_id=reader["id"]):
+        abort(409)
+    return redirect(url_for("desk_order", token=token) if action == "claim"
+                    else url_for("desk"))
+
+
+# ---------------------------------------------------------------------------
 # Crawl surface
 # ---------------------------------------------------------------------------
 
@@ -877,6 +1096,14 @@ def _sitemap_urls():
         (url_for("report_form"), "0.9"),
         (url_for("daily"), "0.8"),
     ]
+    if app.config["HUMAN_READINGS"]:
+        urls.append((url_for("readers_index"), "0.9"))
+        urls += [(url_for("reader_profile", slug=r["slug"]), "0.7")
+                 for r in store.list_readers()]
+    if app.config["HUMAN_READINGS"]:
+        urls.append((url_for("readers_index"), "0.9"))
+        urls += [(url_for("reader_profile", slug=r["slug"]), "0.7")
+                 for r in store.list_readers()]
     urls += [(url_for("birth_date_page", slug=s), "0.7") for s in personal.all_date_slugs()]
     urls += [(url_for("reading", slug=s), "0.8") for s in SPREADS]
     for card in CARDS:
@@ -926,10 +1153,15 @@ def robots():
     lines = [
         "User-agent: *",
         "Allow: /",
+        # Interactive, private or unbounded surfaces. None of these should ever
+        # enter an index: /reading and /report results are per-visitor, /r/ and
+        # /order/ are unguessable links to someone's own reading, /desk is staff.
         "Disallow: /reading/",
         "Disallow: /api/",
         "Disallow: /r/",
         "Disallow: /my-deck",
+        "Disallow: /order/",
+        "Disallow: /desk",
         "",
         f"Sitemap: {app.config['SITE_URL']}/sitemap.xml",
     ]

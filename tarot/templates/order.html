@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="card-page">
+  <div class="narrow">
+    <p class="eyebrow">{{ focus_label }} &middot; with {{ order.reader_name }}</p>
+    <h1 style="font-size:clamp(28px,4.2vw,40px);line-height:1.1">
+      {% if order.status == 'delivered' %}Your reading is here.
+      {% elif order.status == 'cancelled' %}This request was cancelled.
+      {% else %}Your cards are drawn. {{ order.reader_name }} is writing.{% endif %}
+    </h1>
+
+    <div class="status-strip status-{{ order.status }}">
+      <div><span class="k">Status</span><span class="v">{{ order.status }}</span></div>
+      <div><span class="k">Requested</span><span class="v">{{ order.created_at[:10] }}</span></div>
+      <div><span class="k">{{ 'Delivered' if order.status == 'delivered' else 'Due by' }}</span>
+           <span class="v">{{ (order.delivered_at[:16] if order.status == 'delivered' else order.due_at.strftime('%Y-%m-%d %H:%M')) | replace('T',' ') }}</span></div>
+      <div><span class="k">Price</span><span class="v">€{{ order.price }}</span></div>
+    </div>
+
+    {% if order.status != 'delivered' and order.overdue %}
+    <div class="note-block" style="margin-top:20px">
+      <p><strong>This one is past its due time.</strong> That is on us, not on you. If it stays
+         late, reply to whatever channel you arranged with {{ order.reader_name }}.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="wrap">
+    <div class="spread-layout" style="margin:32px 0 8px">
+      {% for e in cards %}
+      <div class="drawn revealed" style="animation-delay:{{ loop.index0 * 0.07 }}s">
+        <div class="pos">{{ e.position }}</div>
+        <div class="flip" style="transform:none">{{ e.svg | safe }}</div>
+        <div class="name">
+          <a href="{{ url_for('card_page', slug=e.card.slug) }}">{{ e.card.name }}</a>
+          {% if e.reversed %}<br><span class="rev">Reversed</span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="narrow">
+    {% if order.status == 'delivered' %}
+    <div class="interp">
+      <h2>From {{ order.reader_name }}</h2>
+      {% for para in order.reading.split('\n\n') %}
+        {% if para.strip() %}<p>{{ para.strip() | md | safe }}</p>{% endif %}
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="waiting">
+      <p class="eyebrow">While you wait</p>
+      <p>These are your cards — {{ order.reader_name }} is looking at the same ones, along with
+         what you wrote. Each card links to its full meaning if you want to read ahead.</p>
+      <p class="mono-note" style="margin-top:14px">
+        Bookmark this page. It is the only link to this reading, and it is how the finished
+        reading reaches you.
+      </p>
+    </div>
+    {% endif %}
+
+    {% if birth %}
+    <div class="interp" style="border-top-width:1px">
+      <h2>Your birth card</h2>
+      <div class="birth-cards">
+        <figure>{{ card_svg(birth.personality) | safe }}
+          <figcaption><span class="role">{{ 'Birth card' if birth.same else 'Personality' }}</span>
+            <a href="{{ url_for('card_page', slug=birth.personality.slug) }}">{{ birth.personality.name }}</a></figcaption></figure>
+        {% if not birth.same %}
+        <figure>{{ card_svg(birth.soul) | safe }}
+          <figcaption><span class="role">Soul</span>
+            <a href="{{ url_for('card_page', slug=birth.soul.slug) }}">{{ birth.soul.name }}</a></figcaption></figure>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="disclaimer">
+      <p><strong>For entertainment and reflection.</strong> A reading is an interpretation, not
+      advice — medical, legal or financial. This record, including what you wrote, is deleted
+      automatically 90 days after the request.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

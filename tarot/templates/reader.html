@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="wrap">
+  <p class="crumbs">
+    <a href="{{ url_for('home') }}">Home</a><span>/</span>
+    <a href="{{ url_for('readers_index') }}">Readers</a><span>/</span>{{ reader.name }}
+  </p>
+</div>
+
+<section class="card-page">
+  <div class="narrow">
+    <p class="eyebrow">€{{ reader.price }} &middot; within {{ reader.turnaround_h }} hours</p>
+    <h1 style="font-size:clamp(32px,5vw,48px);line-height:1.06">{{ reader.name }}</h1>
+    <p style="color:var(--ink-2);font-size:19px;margin-top:14px">{{ reader.tagline }}</p>
+
+    {% if reader.specialties %}
+    <div class="keywords" style="margin-top:18px">
+      {% for sp in reader.specialties %}<span class="kw">{{ sp }}</span>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="meaning" style="margin-top:30px">
+      {% if reader.bio %}<h2>About</h2><p>{{ reader.bio }}</p>{% endif %}
+      {% if reader.approach %}<h2>How they read</h2><p>{{ reader.approach }}</p>{% endif %}
+    </div>
+
+    {% if reader.full %}
+    <div class="note-block" style="margin-top:34px">
+      <p><strong>{{ reader.name }}'s queue is full.</strong> Rather than take the order and miss
+         the deadline, requests are closed until something clears.</p>
+      <p style="margin-top:14px"><a class="btn small" href="{{ url_for('readers_index') }}">See other readers</a></p>
+    </div>
+    {% else %}
+
+    <form class="intake" method="post" action="{{ url_for('reader_request', slug=reader.slug) }}">
+      <fieldset class="step">
+        <legend><span class="n">1</span> What is this about?</legend>
+        <div class="focus-grid">
+          {% for key, label, spread, hint in focus_areas %}
+          <label class="focus">
+            <input type="radio" name="focus" value="{{ key }}" {% if loop.first %}checked{% endif %}>
+            <span class="box"><span class="lbl">{{ label }}</span><span class="hint">{{ hint }}</span></span>
+          </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <fieldset class="step">
+        <legend><span class="n">2</span> What is actually happening?</legend>
+        <p class="help">Required. This is what {{ reader.name }} reads — the more specific you
+           are, the less generic the reading can be.</p>
+        <textarea name="situation" rows="5" maxlength="{{ situation_max }}" required
+                  placeholder="Write it the way you'd say it out loud."></textarea>
+      </fieldset>
+
+      <fieldset class="step">
+        <legend><span class="n">3</span> What have you already tried?</legend>
+        <p class="help">Optional, and the field readers say helps most — it stops the reading
+           suggesting something you already ruled out.</p>
+        <textarea name="tried" rows="3" maxlength="{{ situation_max }}"></textarea>
+      </fieldset>
+
+      <fieldset class="step">
+        <legend><span class="n">4</span> Your birth date</legend>
+        <p class="help">Optional. Adds your birth card to what the reader sees.</p>
+        <div class="birth-fields">
+          <label>Month<select name="bm"><option value="">—</option>{% for i in range(1,13) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}</select></label>
+          <label>Day<select name="bd"><option value="">—</option>{% for i in range(1,32) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}</select></label>
+          <label>Year<select name="by"><option value="">—</option>{% for y in range(2020,1939,-1) %}<option value="{{ y }}">{{ y }}</option>{% endfor %}</select></label>
+        </div>
+      </fieldset>
+
+      <div class="intake-foot">
+        <button class="btn" type="submit">Send to {{ reader.name }}</button>
+        <p class="mono-note">
+          Your cards are drawn straight away &middot; the reading arrives within {{ reader.turnaround_h }}h<br>
+          Payment is arranged separately &mdash; nothing is charged on this page
+        </p>
+      </div>
+    </form>
+    {% endif %}
+
+    <div class="disclaimer">
+      <p><strong>What is kept.</strong> Only what you type above, the cards drawn, and a private
+      link. No account, no email address, no payment details. The whole record is deleted
+      automatically after 90 days.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="card-page">
+  <div class="wrap">
+    <div class="desk-head">
+      <div>
+        <p class="eyebrow">Reader desk</p>
+        <h1 style="font-size:clamp(28px,4vw,40px);line-height:1.08">{{ reader.name }}</h1>
+        <p class="mono-note">€{{ reader.price }} per reading &middot; {{ reader.turnaround_h }}h turnaround
+           &middot; capacity {{ orders | length }}/{{ reader.capacity }}</p>
+      </div>
+      <form method="post" action="{{ url_for('desk_signout') }}">
+        <button class="btn ghost small" type="submit">Sign out</button>
+      </form>
+    </div>
+
+    <div class="suit-head"><h2>Queue</h2><span class="note">{{ orders | length }} open</span></div>
+    {% if orders %}
+    <div class="queue">
+      {% for o in orders %}
+      <a class="q-row {% if o.overdue %}overdue{% endif %}" href="{{ url_for('desk_order', token=o.token) }}">
+        <span class="q-status s-{{ o.status }}">{{ o.status }}</span>
+        <span class="q-focus">{{ o.focus }}</span>
+        <span class="q-text">{{ o.situation[:110] }}{% if o.situation|length > 110 %}…{% endif %}</span>
+        <span class="q-due">{% if o.overdue %}overdue{% else %}due {{ o.due_at.strftime('%d %b %H:%M') }}{% endif %}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="note-block"><p>Nothing waiting. When a request comes in it appears here.</p></div>
+    {% endif %}
+
+    {% if recent %}
+    <div class="suit-head" style="margin-top:44px"><h2>Recently delivered</h2></div>
+    <div class="queue">
+      {% for o in recent %}
+      <a class="q-row done" href="{{ url_for('desk_order', token=o.token) }}">
+        <span class="q-status s-delivered">delivered</span>
+        <span class="q-focus">{{ o.focus }}</span>
+        <span class="q-text">{{ o.situation[:110] }}</span>
+        <span class="q-due">{{ o.delivered_at[:10] }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

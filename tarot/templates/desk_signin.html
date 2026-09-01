@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="card-page">
+  <div class="narrow" style="max-width:520px">
+    <p class="eyebrow">Reader desk</p>
+    <h1 style="font-size:34px;line-height:1.1">Sign in</h1>
+    <p style="color:var(--ink-2)">Paste the access key you were given. There is no password to
+       forget and no account to break into — the key is the whole credential, and it can be
+       rotated.</p>
+
+    {% if error %}<div class="note-block" style="border-color:var(--c-red);margin-bottom:20px"><p>{{ error }}</p></div>{% endif %}
+
+    <form method="post" action="{{ url_for('desk') }}" class="ask" style="margin:26px 0 0">
+      <label for="key">Access key</label>
+      <input type="password" id="key" name="key" autocomplete="off" required>
+      <div class="ask-row" style="justify-content:flex-start">
+        <button class="btn" type="submit">Open my desk</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

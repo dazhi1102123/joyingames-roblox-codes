@@ -30,6 +30,7 @@ That's the whole setup. No API key needed — see *Interpretation* below.
 | **Written report** | Intake form (area, situation, what you already tried, birth date) then a full report drawn against what you described. |
 | **Correspondences** | Colour, stone and metal for all 78 cards, derived from planetary/zodiacal attribution and suit element — the content a daily brief and a physical product both need. |
 | **Daily brief** | `/daily` renders exactly what a daily email would contain, so the content engine can be reviewed before any send channel exists. |
+| **Human readings** | A small hand-picked roster, an async queue, and a reader desk. Cards are drawn instantly; a person writes the interpretation. |
 | **Crawl surface** | Sharded sitemap, robots.txt, canonical tags, `noindex` on the interactive routes. |
 
 ## What's deliberately *not* here
@@ -68,6 +69,8 @@ correspondences.py  colour / stone / metal per card, and the "what to watch" lin
 tarot_data.py    78 cards, 6 spreads, contexts — the single source of truth
 cardart.py       SVG card faces (22 major emblems, 4 suit glyphs, pip layouts)
 personal.py      birth cards, share codec, card of the day
+store.py         SQLite: readers, order queue, state machine, retention
+seed_readers.py  create example readers and print their desk keys
 templates/       Jinja templates
 static/          styles.css, app.js (theme), reading.js (stage), mydeck.js (history)
 ```
@@ -115,6 +118,46 @@ that missing layer:
    history gets richer with use.
 3. **Share links** (`/r/<code>`) — a reading survives as an object someone else can
    open, without requiring either party to have an account.
+
+## Human readings
+
+A queue with a hand-picked roster, deliberately not a marketplace. At three to
+eight readers, star ratings are noise and a booking calendar is overhead that
+buys nothing — what someone wants is a named person and a delivery date.
+
+The flow: the visitor picks a reader and describes their situation → the site
+draws the cards immediately, so they see their spread while they wait → the
+reader claims it from their desk, writes the interpretation, delivers. An order
+moves `open → claimed → delivered`, and `store.TRANSITIONS` is the only authority
+on what may follow what; anything else is refused rather than written.
+
+**Data kept to the floor.** No account, no password, no email address. A request
+is reached by an unguessable link that is also the delivery mechanism. Readers
+sign in with a rotatable access key — a password store for eight people is a
+liability with no upside. Every order carries an expiry and is *deleted* after
+`ORDER_RETENTION_DAYS` (90 by default), and that deletion runs on the request
+path rather than in a cron job, because a retention policy nobody remembers to
+run is not a policy.
+
+The desk shows the generated reading as a collapsed draft. That is a starting
+point, not a shortcut: it goes out under a person's name, and the whole reason
+someone paid for this tier is that a person read it.
+
+### Payment is not wired, and that is not an oversight
+
+Paying a person for a psychic reading is the exact category Stripe restricts —
+the physical-goods route that works for a bracelet does not cover it, and a
+platform that collects and forwards money on a reader's behalf raises payment-
+institution questions on top. So the order carries a price and settlement happens
+out of band. Two ways out, both a decision rather than code:
+
+- **Directory model.** Readers are paid directly and the site charges them for
+  the listing. The site never processes a reading payment. Simplest, and it keeps
+  the restricted category out of your merchant account entirely.
+- **High-risk acquirer.** The site collects and pays out. Higher ARPU and far more
+  compliance surface, including money-flow rules that vary by jurisdiction.
+
+Set `HUMAN_READINGS=0` to hide the whole feature until that is settled.
 
 ## The claims boundary
 
@@ -175,6 +218,11 @@ which must be set for correct canonical tags and sitemap URLs.
 - [ ] Decide the operating entity before collecting a single email address.
 - [ ] The disclaimer and the 18+ notice are load-bearing for payment-provider
       approval as well as for liability. Don't quietly drop them.
+- [ ] Set `SECRET_KEY`. Without it every restart signs readers out mid-queue.
+- [ ] The `readings` volume in `docker-compose.yml` holds the only durable state
+      in the app. Back it up; a rebuild without it discards live orders.
+- [ ] Human readings store what a stranger wrote about their own life. The privacy
+      policy must say so, name the retention period, and match what the code does.
 
 ## Licence note
 

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="card-page">
+  <div class="wrap">
+    <p class="crumbs"><a href="{{ url_for('desk') }}">Desk</a><span>/</span>{{ order.status }}</p>
+
+    <div class="desk-head">
+      <div>
+        <p class="eyebrow">{{ focus_label }}</p>
+        <h1 style="font-size:clamp(24px,3.4vw,34px);line-height:1.12">{{ spread.name }}</h1>
+        <p class="mono-note">
+          requested {{ order.created_at[:16] | replace('T', ' ') }} &middot;
+          {% if order.overdue %}<b style="color:var(--c-red)">overdue</b>{% else %}due {{ order.due_at.strftime('%d %b %H:%M') }}{% endif %}
+        </p>
+      </div>
+      {% if order.status == 'open' %}
+      <form method="post" action="{{ url_for('desk_action', token=order.token, action='claim') }}">
+        <button class="btn" type="submit">Claim this</button>
+      </form>
+      {% elif order.status == 'claimed' %}
+      <form method="post" action="{{ url_for('desk_action', token=order.token, action='release') }}">
+        <button class="btn ghost small" type="submit">Release back to queue</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="desk-grid">
+      <div>
+        <div class="asked" style="margin-top:0">
+          <span class="k">They said</span>
+          <p>{{ order.situation }}</p>
+          {% if order.tried %}<p class="tried"><span class="k">Already tried</span>{{ order.tried }}</p>{% endif %}
+        </div>
+
+        {% if birth %}
+        <div class="note-block" style="margin-top:20px">
+          <p class="mono-note" style="margin-bottom:8px">BIRTH CARD</p>
+          <p style="margin:0">{{ birth.personality.name }}{% if not birth.same %} / {{ birth.soul.name }}{% endif %}</p>
+        </div>
+        {% endif %}
+
+        <div class="spread-layout" style="justify-content:flex-start;margin-top:26px">
+          {% for e in cards %}
+          <div class="drawn revealed" style="width:120px">
+            <div class="pos">{{ e.position }}</div>
+            <div class="flip" style="transform:none">{{ e.svg | safe }}</div>
+            <div class="name" style="font-size:14px">
+              <a href="{{ url_for('card_page', slug=e.card.slug) }}" target="_blank" rel="noopener">{{ e.card.name }}</a>
+              {% if e.reversed %}<br><span class="rev">Rev</span>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <details class="draft-box">
+          <summary>Show the generated draft</summary>
+          <p class="mono-note">A starting point, not a shortcut. It goes out under your name —
+             rewrite it or ignore it.</p>
+          <pre>{{ draft }}</pre>
+        </details>
+      </div>
+
+      <div>
+        {% if order.status == 'delivered' %}
+        <div class="note-block">
+          <p><strong>Delivered {{ order.delivered_at[:16] | replace('T', ' ') }}.</strong></p>
+          <p style="margin-top:12px;white-space:pre-wrap">{{ order.reading }}</p>
+        </div>
+        {% elif order.status == 'claimed' %}
+        <form method="post" action="{{ url_for('desk_action', token=order.token, action='deliver') }}" class="write">
+          <label for="reading">Your reading</label>
+          <textarea id="reading" name="reading" rows="22" required
+                    placeholder="Blank lines separate paragraphs. **Bold** opens a section.">{{ order.reading }}</textarea>
+          <div class="write-foot">
+            <button class="btn" type="submit">Deliver to the querent</button>
+            <p class="mono-note">Delivery is final — the querent sees this immediately and it
+               cannot be edited afterwards.</p>
+          </div>
+        </form>
+        {% else %}
+        <div class="note-block">
+          <p><strong>Claim this order to start writing.</strong> Claiming holds it against your
+             capacity so two readers cannot pick up the same request.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

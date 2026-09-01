@@ -8,6 +8,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# the SQLite file lives on a volume, not in the image layer
+RUN mkdir -p /data
+ENV READINGS_DB=/data/readings.db
+
 EXPOSE 5000
 # Threads rather than extra workers: the interpretation endpoint holds a
 # connection open while it streams, so the server needs concurrency, not CPU.

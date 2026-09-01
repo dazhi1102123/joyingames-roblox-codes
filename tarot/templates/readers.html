@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="wrap"><p class="crumbs"><a href="{{ url_for('home') }}">Home</a><span>/</span>Readers</p></div>
+
+<section class="card-page">
+  <div class="wrap">
+    <div class="band-head">
+      <p class="eyebrow">Written by a person</p>
+      <h1 style="font-size:clamp(32px,5vw,50px);line-height:1.06">A reading someone actually wrote.</h1>
+      <p>Everything else on this site is generated. This isn't. You describe your situation, the
+         cards are drawn immediately, and one of these readers writes the interpretation by hand
+         and sends it back within a day or two.</p>
+    </div>
+
+    {% if roster %}
+    <div class="roster">
+      {% for r in roster %}
+      <article class="reader-card">
+        <div class="reader-head">
+          <h2><a href="{{ url_for('reader_profile', slug=r.slug) }}">{{ r.name }}</a></h2>
+          <span class="price">€{{ r.price }}</span>
+        </div>
+        <p class="tagline">{{ r.tagline }}</p>
+        {% if r.specialties %}
+        <div class="keywords">
+          {% for sp in r.specialties %}<span class="kw">{{ sp }}</span>{% endfor %}
+        </div>
+        {% endif %}
+        <p class="bio">{{ r.bio }}</p>
+        <div class="reader-foot">
+          <span class="turn">within {{ r.turnaround_h }}h</span>
+          {% if r.full %}
+            <span class="full">Queue full</span>
+          {% else %}
+            <a class="btn small" href="{{ url_for('reader_profile', slug=r.slug) }}">Request a reading</a>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="note-block">
+      <p><strong>No readers on the roster yet.</strong> This page fills in once readers are added.</p>
+    </div>
+    {% endif %}
+
+    <div class="disclaimer" style="max-width:none">
+      <p><strong>Still for entertainment and reflection.</strong> A reading written by a person is
+      an interpretation, not advice — medical, legal or financial — and it does not predict what
+      will happen. Readers are independent; they are not counsellors or therapists.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}
