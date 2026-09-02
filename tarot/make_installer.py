@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""Build tarot-setup.py: one file that carries the whole site inside it.
+"""Build the two standalone bootstrappers.
 
-    python make_installer.py [output.py]
+    python make_installer.py [output-directory]
 
-Zip archives keep arriving on Windows as empty folders, so this removes the
-archive step entirely. The generated file is plain ASCII Python: it writes the
-project next to itself, builds a virtualenv, installs Flask, seeds example data
-and opens a browser. Nothing to unpack, nothing to configure.
+Writes:
 
-The payload is a gzipped tar built from the files git tracks, so it can never
+    tarot-setup.py    carries the whole project inside it as a gzipped tar
+    tarot-fromgit.py  clones the project from GitHub instead
+
+Zip archives keep arriving on Windows as empty folders, so tarot-setup.py
+removes the archive step entirely. Both files are plain ASCII Python, both
+install into a folder beside themselves, and everything after the files land
+on disk is the same code -- runner.py, spliced into both at the __RUNNER__
+marker. Neither can import it, because each has to be one file.
+
+The tarot-setup.py payload is built from the files git tracks, so it can never
 pick up a local .env, a database or a virtualenv.
 """
 
@@ -24,7 +30,12 @@ import tarfile
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 # Build machinery: needed to rebuild the installer, not to run the site.
-BUILD_ONLY = {"tarot/make_installer.py", "tarot/installer_template.py"}
+BUILD_ONLY = {
+    "tarot/make_installer.py",
+    "tarot/installer_template.py",
+    "tarot/fromgit_template.py",
+    "tarot/runner.py",
+}
 
 # 76 chars keeps the generated source inside a sane line length.
 WIDTH = 76
@@ -57,25 +68,63 @@ def payload(names):
     return raw.getvalue()
 
 
-def main():
-    dest = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "tarot-setup.py")
-    names = tracked()
-    blob = payload(names)
-    b64 = base64.b64encode(blob).decode("ascii")
-    lines = "\n".join(f'    "{b64[i:i + WIDTH]}"' for i in range(0, len(b64), WIDTH))
+def repo_and_branch():
+    """Where tarot-fromgit.py should clone from: this checkout's own origin."""
+    url = subprocess.check_output(
+        ["git", "remote", "get-url", "origin"], cwd=ROOT, text=True
+    ).strip()
+    if not url.endswith(".git"):
+        url += ".git"
+    branch = subprocess.check_output(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=ROOT, text=True
+    ).strip()
+    return url, branch
 
-    template = (HERE / "installer_template.py").read_text(encoding="utf-8")
-    if "__PAYLOAD__" not in template:
-        raise SystemExit("installer_template.py has no __PAYLOAD__ marker")
-    source = template.replace("    __PAYLOAD__", lines)
-    source = source.replace("__FILE_COUNT__", str(len(names)))
+
+def runner_body():
+    """runner.py without its module docstring -- it is spliced, not imported."""
+    text = (HERE / "runner.py").read_text(encoding="utf-8")
+    body = text.split('"""', 2)[2]
+    return body.strip("\n")
+
+
+def emit(dest, template, substitutions):
+    source = (HERE / template).read_text(encoding="utf-8")
+    for marker, value in substitutions.items():
+        if marker not in source:
+            raise SystemExit(f"{template} has no {marker} marker")
+        source = source.replace(marker, value)
 
     if not source.isascii():
         bad = sorted({c for c in source if not c.isascii()})
-        raise SystemExit(f"generated source is not ASCII: {bad}")
+        raise SystemExit(f"{dest} is not ASCII: {bad}")
+    compile(source, str(dest), "exec")
 
     dest.write_text(source, encoding="ascii", newline="\n")
-    print(f"{dest}  {len(names)} files  {dest.stat().st_size:,} bytes")
+    print(f"{dest}  {dest.stat().st_size:,} bytes")
+
+
+def main():
+    out = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".")
+    out.mkdir(parents=True, exist_ok=True)
+
+    names = tracked()
+    b64 = base64.b64encode(payload(names)).decode("ascii")
+    lines = "\n".join(f'    "{b64[i:i + WIDTH]}"' for i in range(0, len(b64), WIDTH))
+    runner = runner_body()
+    repo, branch = repo_and_branch()
+
+    print(f"{len(names)} files, {len(b64):,} bytes of payload")
+    emit(out / "tarot-setup.py", "installer_template.py", {
+        "    __PAYLOAD__": lines,
+        "__FILE_COUNT__": str(len(names)),
+        "__RUNNER__": runner,
+    })
+    emit(out / "tarot-fromgit.py", "fromgit_template.py", {
+        "__RUNNER__": runner,
+        "__REPO__": repo,
+        "__BRANCH__": branch,
+    })
     return 0
 
 
