@@ -24,7 +24,11 @@ requirement; gunicorn and the model client live in `requirements-full.txt` and
 are what Docker installs. Gunicorn cannot run on Windows at all, and a heavy
 optional dependency is the likeliest thing to break a first-time setup.
 
-**On Windows**, double-click `启动.bat` instead of running `dev.sh`.
+**On Windows**, double-click `START.bat` instead of running `dev.sh`.
+
+Filenames in this project are ASCII on purpose. A non-ASCII name in a zip is
+stored without the UTF-8 flag by most command-line zip tools, and Windows
+Explorer can fail the whole extraction over it.
 
 Worth opening, in order:
 

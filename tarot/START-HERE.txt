@@ -1,0 +1,42 @@
+Arcana Press —— 本地运行说明
+================================
+
+Windows
+-------
+双击 START.bat
+
+它会自动完成：找 Python → 建虚拟环境 → 装依赖 → 生成配置和随机密钥
+→ 种入 3 位示例读牌师和几笔订单 → 启动服务 → 打开浏览器。
+
+浏览器会自动打开 http://localhost:5000
+关闭服务：在黑窗口里按 Ctrl+C
+
+要求：Python 3.9 以上。没装的话去 https://www.python.org/downloads/
+安装时务必勾选 "Add python.exe to PATH"。
+
+
+Mac / Linux
+-----------
+./dev.sh
+
+
+跑起来之后看哪些页面
+--------------------
+/                      首页
+/reading/celtic-cross  抽十张牌，解读逐段浮现
+/report                填写处境，生成完整报告
+/cards                 78 张原创牌面
+/readers               向真人读牌师下单
+/desk                  读牌师工作台（密钥启动时会打印）
+/admin                 运营台（密钥启动时会打印）
+/legal/privacy         红色 MISSING 标记 = 还需要补的注册信息
+
+右上角 Theme 按钮可切换深色/浅色。
+
+
+重复运行是安全的
+----------------
+已经存在的 .env、数据库、你改过的代码都不会被覆盖。
+
+
+更多说明见 README.md
