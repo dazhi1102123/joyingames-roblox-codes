@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 .venv/
 readings.db
+tarot-setup.py

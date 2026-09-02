@@ -26,9 +26,28 @@ optional dependency is the likeliest thing to break a first-time setup.
 
 **On Windows**, double-click `START.bat` instead of running `dev.sh`.
 
-Filenames in this project are ASCII on purpose. A non-ASCII name in a zip is
-stored without the UTF-8 flag by most command-line zip tools, and Windows
-Explorer can fail the whole extraction over it.
+### Without a copy of this repository
+
+`make_installer.py` builds `tarot-setup.py`: a single Python file that carries
+the whole project inside it as a gzipped tar.
+
+```bash
+python make_installer.py          # writes tarot-setup.py
+```
+
+Drop that one file where the project should live and run it. It writes a
+`tarot` folder beside itself — or installs in place if it is already sitting in
+one — builds a virtualenv, installs Flask, seeds the example data and opens a
+browser. Re-running it refreshes the code and leaves your `.env` and database
+alone.
+
+This exists because sending a zip did not survive the trip to Windows twice
+running. There is no archive to extract, so Explorer never gets a chance to
+mangle it, and the generated file is checked to be pure ASCII.
+
+Filenames in this project are ASCII on purpose, for the same reason. A
+non-ASCII name in a zip is stored without the UTF-8 flag by most command-line
+zip tools, and Windows Explorer can fail the whole extraction over it.
 
 Worth opening, in order:
 
