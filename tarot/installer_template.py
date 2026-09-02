@@ -32,9 +32,6 @@ import socket
 import subprocess
 import sys
 import tarfile
-import threading
-import time
-import webbrowser
 
 FILE_COUNT = __FILE_COUNT__
 DEFAULT_PORT = 5000

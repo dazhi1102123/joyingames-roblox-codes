@@ -116,38 +116,21 @@ def free_port(start):
 
 
 def launch(python, dest, port):
-    url = "http://localhost:%d" % port
-    threading.Thread(target=open_when_ready, args=(url, port), daemon=True).start()
+    """Hand off to serve.py, which every launcher shares."""
     say("")
     rule()
-    say("  " + url)
+    say("  http://localhost:%d" % port)
     say("")
     say("  Emails print in this window instead of being sent.")
     say("  Press Ctrl-C to stop the server.")
     rule()
     say("")
-    code = "from app import app; app.run(host='127.0.0.1', port=%d, threaded=True)" % port
     try:
-        return subprocess.call([str(python), "-c", code], cwd=str(dest))
+        return subprocess.call(
+            [str(python), "serve.py", str(port), "--no-reload"], cwd=str(dest)
+        )
     except KeyboardInterrupt:
         return 0
-
-
-def open_when_ready(url, port, timeout=30):
-    """Open a browser once the port answers, so the first hit is not a refusal."""
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        with socket.socket() as probe:
-            probe.settimeout(0.5)
-            if probe.connect_ex(("127.0.0.1", port)) == 0:
-                try:
-                    webbrowser.open(url)
-                except Exception:
-                    pass
-                return
-        time.sleep(0.3)
-
-
 
 
 # --------------------------------------------------------------------------

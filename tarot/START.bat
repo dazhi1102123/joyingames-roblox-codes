@@ -90,8 +90,8 @@ if errorlevel 1 (
 )
 
 rem --- go --------------------------------------------------------------------
-start "" "http://localhost:%PORT%"
-"%VPY%" -c "from app import app; app.run(host='127.0.0.1', port=%PORT%, debug=True)"
+rem serve.py opens the browser once the port answers, not before.
+"%VPY%" serve.py %PORT%
 
 echo.
 echo   The server has stopped.

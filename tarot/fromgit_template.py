@@ -33,9 +33,6 @@ import socket
 import subprocess
 import sys
 import tempfile
-import threading
-import time
-import webbrowser
 
 REPO = "__REPO__"
 BRANCH = "__BRANCH__"

@@ -36,7 +36,5 @@ say "Installing dependencies"
 ./.venv/bin/python bootstrap.py "$PORT"
 
 # --- 3. go -------------------------------------------------------------------
-exec ./.venv/bin/python -c "
-from app import app
-app.run(host='127.0.0.1', port=${PORT}, debug=True)
-"
+# serve.py opens the browser once the port answers, not before.
+exec ./.venv/bin/python serve.py "$PORT"
