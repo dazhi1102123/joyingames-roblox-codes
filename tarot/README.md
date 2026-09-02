@@ -26,24 +26,40 @@ optional dependency is the likeliest thing to break a first-time setup.
 
 **On Windows**, double-click `START.bat` instead of running `dev.sh`.
 
-### Without a copy of this repository
+### Getting a copy from git
 
-`make_installer.py` builds `tarot-setup.py`: a single Python file that carries
-the whole project inside it as a gzipped tar.
+The site is the `tarot/` subfolder of the repository, so a plain clone leaves
+the code one level deeper than most people want:
 
 ```bash
-python make_installer.py          # writes tarot-setup.py
+git clone --depth 1 -b <branch> <repo-url> tarot-repo
+cd tarot-repo/tarot && ./dev.sh
 ```
 
-Drop that one file where the project should live and run it. It writes a
-`tarot` folder beside itself — or installs in place if it is already sitting in
-one — builds a virtualenv, installs Flask, seeds the example data and opens a
-browser. Re-running it refreshes the code and leaves your `.env` and database
-alone.
+`tarot-fromgit.py` does that and flattens it: shallow clone into a scratch
+folder, lift `tarot/` into place, discard the clone, record the commit in
+`SOURCE.txt`, then set up and serve. Re-run it to pull the latest code; your
+`.env` and database are gitignored, so a pull cannot touch them.
+
+### Without git at all
+
+`tarot-setup.py` carries the whole project inside it as a gzipped tar. One
+file, no clone, no archive to extract — just Python.
+
+```bash
+python make_installer.py [output-dir]   # builds both of the above
+```
+
+Both install into a folder beside themselves — or in place if already sitting
+in one named `tarot` — build a virtualenv, install Flask, seed the example data
+and open a browser. Everything after the files land on disk is the same code,
+kept in `runner.py` and spliced into both; neither can import it, because each
+has to be a single file.
 
 This exists because sending a zip did not survive the trip to Windows twice
 running. There is no archive to extract, so Explorer never gets a chance to
-mangle it, and the generated file is checked to be pure ASCII.
+mangle it, and both generated files are compiled and checked to be pure ASCII
+before they are written.
 
 Filenames in this project are ASCII on purpose, for the same reason. A
 non-ASCII name in a zip is stored without the UTF-8 flag by most command-line

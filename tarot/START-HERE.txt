@@ -20,6 +20,21 @@ Mac / Linux
 ./dev.sh
 
 
+从 git 拉代码？
+--------------
+用 tarot-fromgit.py：放到你想安装的位置，运行它。
+它会浅克隆仓库，把 tarot/ 子目录提上来，删掉克隆，然后直接启动。
+重复运行 = 拉最新代码；你的 .env 和数据库不会被动。
+需要先装 git：https://git-scm.com/download/win
+
+手动 git 命令（代码会在 tarot-repo\tarot 里，多一层）：
+
+    cd /d D:\website
+    git clone --depth 1 -b <分支名> <仓库地址> tarot-repo
+    cd tarot-repo\tarot
+    START.bat
+
+
 只有 tarot-setup.py 一个文件？
 ------------------------------
 那个文件把整个项目装在自己肚子里。把它放到你想安装的位置，然后：
