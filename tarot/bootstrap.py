@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prepare a working copy: write .env, then seed example data.
 
-Shared by dev.sh and 启动.bat so the two platforms cannot drift. Batch files are
+Shared by dev.sh and START.bat so the two platforms cannot drift. Batch files are
 a poor place for string manipulation and secret generation; this keeps that in
 one tested place.
 
