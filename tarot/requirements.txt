@@ -1,3 +1,5 @@
+# The only hard requirement. Keeping this to one package means the first run is
+# quick and has little to fail — which matters most on Windows, where gunicorn
+# installs but cannot run, and where a heavy optional dependency is the most
+# likely thing to break a first-time setup.
 Flask>=3.0.0
-gunicorn>=22.0.0
-openai>=2.0.0

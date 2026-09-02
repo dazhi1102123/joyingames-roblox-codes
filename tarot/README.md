@@ -19,6 +19,13 @@ re-seeds a database that already has orders in it.
 No API keys anywhere. Payment runs in `manual` mode and email prints to the
 terminal, so every flow is walkable without an account at any provider.
 
+`requirements.txt` is deliberately one package. Flask is the only hard
+requirement; gunicorn and the model client live in `requirements-full.txt` and
+are what Docker installs. Gunicorn cannot run on Windows at all, and a heavy
+optional dependency is the likeliest thing to break a first-time setup.
+
+**On Windows**, double-click `启动.bat` instead of running `dev.sh`.
+
 Worth opening, in order:
 
 | | |

@@ -1,0 +1,9 @@
+-r requirements.txt
+
+# Production WSGI server. Unix only — do not install on Windows.
+gunicorn>=22.0.0
+
+# Optional. Without it the site composes readings from the card corpus instead,
+# which is a complete path rather than a degraded one. app.py imports it inside
+# a try/except for exactly that reason.
+openai>=2.0.0
