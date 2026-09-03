@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react"
 import {
-  CARD_FACES,
   composeReading,
   drawCards,
   hydrate,
@@ -10,6 +9,7 @@ import {
   type Reading,
   type Spread,
 } from "@arcana/core"
+import { CardFace } from "../../card-face"
 
 /** The draw happens in the browser, on purpose.
  *
@@ -67,10 +67,7 @@ export function ReadingBoard({ spread }: { spread: Spread }) {
             {reading.cards.map((entry, i) => (
               <li key={`${entry.card.slug}-${i}`}>
                 <span className="pos">{entry.position.name}</span>
-                <div
-                  className={`art${entry.reversed ? " reversed" : ""}`}
-                  dangerouslySetInnerHTML={{ __html: CARD_FACES[entry.card.slug] }}
-                />
+                <CardFace slug={entry.card.slug} reversed={entry.reversed} />
                 <a className="cardname" href={`/cards/${entry.card.slug}`}>
                   {entry.card.name}
                 </a>

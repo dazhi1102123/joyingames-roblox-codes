@@ -32,7 +32,7 @@ export function CardFace({
     return (
       <div className={`${cls} photo`}>
         <Image
-          src={`/cards/rws/${slug}.jpg`}
+          src={`/cards/rws/${slug}.webp`}
           alt={`${name} — Rider-Waite-Smith, 1909`}
           width={300}
           height={520}

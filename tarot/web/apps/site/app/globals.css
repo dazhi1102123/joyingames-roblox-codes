@@ -111,16 +111,22 @@ section, .prose-wide, .card-page, .reading-page {
 .hero-copy { justify-self: end; width: 100%; max-width: 560px; }
 .stat { font-family: var(--mono); font-size: .74rem; color: var(--ink-3); line-height: 1.9; }
 
-.fan { position: relative; height: 340px; }
+/* The fan has to stay inside its own grid column. The photographed deck is
+   wider than the drawn one it replaced, and at the old spread the outermost
+   card reached back across the headline. */
+.fan { position: relative; height: 320px; }
 .fan-card {
-  position: absolute; top: 0; left: 50%; width: 190px;
+  position: absolute; top: 0; left: 50%; width: 158px;
   filter: drop-shadow(0 10px 22px var(--shadow));
   transform-origin: 50% 92%;
 }
-.fan-card[data-i="0"] { transform: translateX(-50%) translateX(-198px) rotate(-13deg); }
-.fan-card[data-i="1"] { transform: translateX(-50%) translateX(-66px)  rotate(-4.5deg); }
-.fan-card[data-i="2"] { transform: translateX(-50%) translateX(66px)   rotate(4.5deg); }
-.fan-card[data-i="3"] { transform: translateX(-50%) translateX(198px)  rotate(13deg); }
+.fan-card[data-i="0"] { transform: translateX(-50%) translateX(-156px) rotate(-13deg); }
+.fan-card[data-i="1"] { transform: translateX(-50%) translateX(-52px)  rotate(-4.5deg); }
+.fan-card[data-i="2"] { transform: translateX(-50%) translateX(52px)   rotate(4.5deg); }
+.fan-card[data-i="3"] { transform: translateX(-50%) translateX(156px)  rotate(13deg); }
+/* Belt and braces: if a narrow viewport still squeezes the column, the words
+   win over the decoration. */
+.hero-copy { position: relative; z-index: 1; }
 
 /* --- grids and tiles ------------------------------------------------------- */
 

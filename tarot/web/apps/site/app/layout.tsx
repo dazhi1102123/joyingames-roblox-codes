@@ -98,7 +98,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             not advice — medical, legal, financial or otherwise — and nothing here
             predicts the future. You must be 18 or older to use this site. Cards are
             drawn with your device&rsquo;s cryptographic random number generator.
-            <br />© 2026 {SITE.operator}. Card artwork drawn for this site.
+            <br />© 2026 {SITE.operator}. Card artwork: Rider-Waite-Smith, 1909,
+            illustrated by Pamela Colman Smith — public domain.
           </p>
         </footer>
       </body>
