@@ -1,0 +1,11 @@
+{
+  "name": "arcana-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @arcana/site dev",
+    "build": "pnpm --filter @arcana/site build",
+    "start": "pnpm --filter @arcana/site start",
+    "typecheck": "pnpm -r exec tsc --noEmit",
+    "gen": "python3 ../gen_data.py"
+  }
+}

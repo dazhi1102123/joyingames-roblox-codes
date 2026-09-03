@@ -1,0 +1,310 @@
+@import "./tokens.css";
+
+/* ==========================================================================
+   Layout and components.
+   The tokens above are lifted verbatim from the Flask build, so the two
+   versions render the same design while both exist. Only the class names
+   differ, because the markup is React now.
+   ========================================================================== */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link); }
+img, svg { max-width: 100%; }
+
+h1, h2, h3, h4 { font-family: var(--disp); font-weight: 400; line-height: 1.15; margin: 0 0 .5em; }
+h1 { font-size: clamp(2rem, 1.4rem + 2.4vw, 3.4rem); letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.4rem, 1.1rem + 1.1vw, 2rem); }
+h3 { font-size: 1.15rem; }
+
+p { margin: 0 0 1.1em; max-width: var(--measure); }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: .72rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 .8em;
+}
+
+.lede { font-size: 1.06rem; color: var(--ink-2); }
+.note { color: var(--ink-2); font-size: .95rem; }
+
+/* --- chrome --------------------------------------------------------------- */
+
+.masthead {
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: .9rem clamp(1rem, 4vw, 3rem);
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+  position: sticky; top: 0; z-index: 10;
+}
+.wordmark {
+  display: flex; align-items: center; gap: .6rem;
+  font-family: var(--disp); font-size: 1.15rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink); text-decoration: none;
+  white-space: nowrap;
+}
+.wordmark .mark {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--c-yellow); border: 2px solid var(--card-line);
+  box-shadow: inset 0 0 0 3px var(--card-face);
+}
+.masthead nav { display: flex; gap: 1.2rem; flex: 1; flex-wrap: wrap; }
+.masthead nav a {
+  font-family: var(--mono); font-size: .74rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-2); text-decoration: none;
+  padding-bottom: 2px; border-bottom: 1px solid transparent;
+}
+.masthead nav a:hover { color: var(--ink); border-bottom-color: var(--accent); }
+
+.theme {
+  font-family: var(--mono); font-size: .7rem; letter-spacing: .1em;
+  text-transform: uppercase; padding: .35rem .7rem; cursor: pointer;
+  background: transparent; color: var(--ink-2);
+  border: 1px solid var(--rule-hard); border-radius: var(--radius);
+}
+.theme:hover { color: var(--ink); border-color: var(--ink-3); }
+
+main { display: block; }
+
+section, .prose-wide, .card-page, .reading-page {
+  padding: clamp(2.5rem, 5vw, 4.5rem) clamp(1rem, 4vw, 3rem);
+  max-width: 1180px; margin: 0 auto;
+}
+.band { background: var(--surface); max-width: none; }
+.band > * { max-width: 1180px; margin-left: auto; margin-right: auto; }
+
+/* --- buttons -------------------------------------------------------------- */
+
+.btn {
+  display: inline-block;
+  font-family: var(--mono); font-size: .76rem; letter-spacing: .1em;
+  text-transform: uppercase; text-decoration: none;
+  padding: .8rem 1.3rem; cursor: pointer;
+  color: var(--ink); background: transparent;
+  border: 1px solid var(--rule-hard); border-radius: var(--radius);
+}
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn.primary:hover { opacity: .88; }
+.actions { display: flex; gap: .8rem; flex-wrap: wrap; margin: 1.6rem 0; }
+
+/* --- hero ----------------------------------------------------------------- */
+
+.hero {
+  display: grid; grid-template-columns: 1.1fr .9fr; gap: 3rem; align-items: center;
+  background: var(--surface); max-width: none;
+}
+.hero > * { max-width: 1180px; }
+.hero-copy { justify-self: end; width: 100%; max-width: 560px; }
+.stat { font-family: var(--mono); font-size: .74rem; color: var(--ink-3); line-height: 1.9; }
+
+.fan { position: relative; height: 340px; }
+.fan-card {
+  position: absolute; top: 0; left: 50%; width: 190px;
+  filter: drop-shadow(0 10px 22px var(--shadow));
+  transform-origin: 50% 92%;
+}
+.fan-card[data-i="0"] { transform: translateX(-50%) translateX(-198px) rotate(-13deg); }
+.fan-card[data-i="1"] { transform: translateX(-50%) translateX(-66px)  rotate(-4.5deg); }
+.fan-card[data-i="2"] { transform: translateX(-50%) translateX(66px)   rotate(4.5deg); }
+.fan-card[data-i="3"] { transform: translateX(-50%) translateX(198px)  rotate(13deg); }
+
+/* --- grids and tiles ------------------------------------------------------- */
+
+.grid { display: grid; gap: 1rem; margin-top: 1.8rem; }
+.grid.spreads { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.grid.three   { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+
+.tile {
+  display: block; padding: 1.2rem 1.3rem; text-decoration: none; color: inherit;
+  background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius);
+}
+a.tile:hover { border-color: var(--ink-3); }
+.tile h3 { margin-bottom: .35rem; }
+.tile p { font-size: .93rem; color: var(--ink-2); margin-bottom: .9rem; }
+.tile footer {
+  display: flex; justify-content: space-between; align-items: center;
+  border-top: 1px solid var(--rule); padding-top: .7rem;
+  font-family: var(--mono); font-size: .7rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent);
+}
+.pips { display: inline-flex; gap: 2px; }
+.pips i { width: 7px; height: 11px; border: 1px solid var(--rule-hard); }
+.pips i.on { background: var(--c-yellow); border-color: var(--card-line); }
+
+/* --- card art -------------------------------------------------------------- */
+
+.art { width: 100%; line-height: 0; }
+.art svg { width: 100%; height: auto; display: block; }
+.art.reversed svg { transform: rotate(180deg); }
+.art.large { max-width: 300px; }
+
+/* The face's own text. The Flask build relied on browser defaults here,
+   which is why these were easy to miss -- set them explicitly. */
+.cardface-num  { fill: var(--card-line); }
+.cardface-name { fill: var(--card-line); }
+
+/* --- deck index ------------------------------------------------------------ */
+
+.deck-group { padding: 2.2rem 0 0; }
+.deck-grid {
+  list-style: none; padding: 0; margin: 1.2rem 0 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(122px, 1fr)); gap: 1.1rem;
+}
+.deck-grid a { text-decoration: none; color: inherit; display: block; }
+.deck-grid a:hover .art { filter: drop-shadow(0 6px 14px var(--shadow)); }
+.cardname {
+  display: block; margin-top: .5rem; text-align: center;
+  font-size: .82rem; color: var(--ink-2); line-height: 1.3;
+}
+
+/* --- card page -------------------------------------------------------------- */
+
+.crumbs {
+  font-family: var(--mono); font-size: .7rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 1.8rem;
+}
+.card-layout { display: grid; grid-template-columns: 300px 1fr; gap: 3rem; align-items: start; }
+.card-layout aside .art { filter: drop-shadow(0 12px 26px var(--shadow)); }
+
+.facts { margin: 1.6rem 0 0; }
+.facts > div {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: .55rem 0; border-bottom: 1px solid var(--rule);
+}
+.facts dt {
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.facts dd { margin: 0; font-size: .92rem; }
+.facts dd.cap { text-transform: capitalize; }
+.swatch {
+  display: inline-block; width: 11px; height: 11px; margin-right: .4rem;
+  border: 1px solid var(--card-line); vertical-align: baseline;
+}
+
+.keys { list-style: none; padding: 0; margin: 0 0 2rem; display: flex; flex-wrap: wrap; gap: .4rem; }
+.keys li {
+  font-family: var(--mono); font-size: .72rem; padding: .3rem .6rem;
+  border: 1px solid var(--rule-hard); border-radius: var(--radius); color: var(--ink-2);
+}
+.keys li.rev { border-style: dashed; color: var(--ink-3); }
+
+h2.label {
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--accent);
+  border-bottom: 1px solid var(--rule); padding-bottom: .4rem; margin-top: 2rem;
+}
+.ctx { margin-top: 2.4rem; }
+
+.cta {
+  display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
+  flex-wrap: wrap; margin: 2.5rem 0; padding: 1.3rem 1.5rem;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+}
+.cta p { margin: 0; font-size: .95rem; }
+
+.neighbours { list-style: none; padding: 0; display: flex; gap: 1.2rem; flex-wrap: wrap; }
+.neighbours a { text-decoration: none; color: inherit; width: 122px; display: block; }
+
+/* --- reading ---------------------------------------------------------------- */
+
+.reading-page { max-width: 940px; }
+.controls { display: grid; gap: 1rem; justify-items: center; margin: 2rem 0 2.6rem; }
+.controls label { width: 100%; max-width: 520px; }
+.controls input[type="text"], .controls input:not([type]) {
+  width: 100%; padding: .75rem .9rem; font-family: var(--body); font-size: .96rem;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule-hard); border-radius: var(--radius);
+}
+.controls .check {
+  display: flex; align-items: center; gap: .5rem; width: auto;
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.spread-grid {
+  list-style: none; padding: 0; margin: 0 0 3rem;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  gap: 1.4rem; justify-items: center;
+}
+.spread-grid li { width: 100%; max-width: 150px; text-align: center; }
+.spread-grid .pos {
+  display: block; margin-bottom: .5rem;
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.spread-grid .cardname { text-decoration: none; }
+.spread-grid .tag {
+  display: inline-block; margin-top: .3rem; padding: .1rem .4rem;
+  font-family: var(--mono); font-size: .58rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent);
+  border: 1px solid var(--accent); border-radius: var(--radius);
+}
+
+.interpretation { border-top: 2px solid var(--ink); padding-top: 1.8rem; }
+.interpretation p { max-width: var(--measure); }
+
+.positions > div { padding: .6rem 0; border-bottom: 1px solid var(--rule); }
+.positions dt { font-family: var(--disp); font-size: 1rem; }
+.positions dd { margin: .2rem 0 0; color: var(--ink-2); font-size: .93rem; }
+
+.spread-explainer { padding: 1.8rem 0; border-top: 1px solid var(--rule); }
+
+.disclaimer, .explainer { margin-top: 2.5rem; }
+.disclaimer {
+  padding: 1rem 1.2rem; font-size: .9rem; color: var(--ink-2);
+  background: var(--surface); border-left: 3px solid var(--accent);
+}
+
+/* --- footer ----------------------------------------------------------------- */
+
+.footer {
+  background: var(--surface); border-top: 1px solid var(--rule);
+  padding: 3rem clamp(1rem, 4vw, 3rem) 2rem;
+}
+.footer .cols {
+  max-width: 1180px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 2rem;
+}
+.footer h4 {
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: .8rem;
+}
+.footer a { display: block; padding: .25rem 0; font-size: .9rem; color: var(--ink-2); text-decoration: none; }
+.footer a:hover { color: var(--ink); }
+.fineprint {
+  max-width: 1180px; margin: 2.5rem auto 0; padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+  font-size: .78rem; color: var(--ink-3); line-height: 1.7;
+}
+
+/* --- narrow ------------------------------------------------------------------ */
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-copy { justify-self: start; max-width: none; }
+  .fan { height: 260px; transform: scale(.8); }
+  .card-layout { grid-template-columns: 1fr; }
+  .card-layout aside { max-width: 260px; }
+}
+
+.missing {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: .78rem;
+  letter-spacing: .06em;
+}

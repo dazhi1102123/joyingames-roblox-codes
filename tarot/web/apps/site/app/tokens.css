@@ -1,0 +1,73 @@
+/* ==========================================================================
+   Arcana Press
+   --------------------------------------------------------------------------
+   Visual direction: a deck printed in 1909. Flat inks, black keylines, no
+   gradients and no glow. The cards carry all the colour; the interface around
+   them stays quiet so they read as objects on a table.
+
+   Card inks (--c-*) and the card face do NOT flip with the theme — a real card
+   is a light object whatever the room is doing. Only the room changes.
+   ========================================================================== */
+
+:root {
+  /* the room — light */
+  --paper:      #E6E3D5;
+  --surface:    #F1EEE3;
+  --surface-2:  #DBD7C6;
+  --ink:        #1B1815;
+  --ink-2:      #5A5648;
+  --ink-3:      #8B8676;
+  --rule:       #CFC9B6;
+  --rule-hard:  #ABA48D;
+  --shadow:     rgba(27, 24, 21, 0.16);
+
+  /* the deck — fixed across themes */
+  --card-face:  #F7F4EA;
+  --card-line:  #1B1815;
+  --c-yellow:   #D9A521;
+  --c-red:      #B4442F;
+  --c-blue:     #3D6390;
+  --c-green:    #5F7F55;
+  --c-slate:    #6B7078;
+
+  --accent:     #B4442F;
+  --link:       #35597F;
+
+  --disp: "Marcellus", "Songti SC", Georgia, serif;
+  --body: "Spectral", "Songti SC", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --measure: 64ch;
+  --radius: 3px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:      #16150F;
+    --surface:    #201E16;
+    --surface-2:  #2B2820;
+    --ink:        #EAE5D6;
+    --ink-2:      #A8A28D;
+    --ink-3:      #78735F;
+    --rule:       #34312A;
+    --rule-hard:  #4A4639;
+    --shadow:     rgba(0, 0, 0, 0.55);
+    --accent:     #D9724F;
+    --link:       #8FB0D6;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:      #16150F;
+  --surface:    #201E16;
+  --surface-2:  #2B2820;
+  --ink:        #EAE5D6;
+  --ink-2:      #A8A28D;
+  --ink-3:      #78735F;
+  --rule:       #34312A;
+  --rule-hard:  #4A4639;
+  --shadow:     rgba(0, 0, 0, 0.55);
+  --accent:     #D9724F;
+  --link:       #8FB0D6;
+}
+
