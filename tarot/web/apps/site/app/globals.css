@@ -367,3 +367,18 @@ h2.label {
 .ledger td.cap { text-transform: capitalize; }
 .ledger form { margin: 0; }
 .ledger .btn { padding: .35rem .7rem; font-size: .66rem; }
+
+/* --- the preview index (not a public page) ------------------------------- */
+
+.preview-group { margin-top: 2.4rem; }
+.preview-list { list-style: none; padding: 0; margin: .8rem 0 0; }
+.preview-list li {
+  display: flex; align-items: baseline; gap: .8rem; flex-wrap: wrap;
+  padding: .5rem 0; border-bottom: 1px solid var(--rule);
+}
+.preview-list a { text-decoration: none; font-size: 1rem; }
+.preview-list a:hover { text-decoration: underline; }
+.preview-list code {
+  font-family: var(--mono); font-size: .72rem; color: var(--ink-3);
+}
+.preview-list .note { font-size: .8rem; margin: 0; }

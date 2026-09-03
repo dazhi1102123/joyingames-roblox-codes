@@ -1,11 +1,14 @@
 {
   "name": "arcana-monorepo",
   "private": true,
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "pnpm --filter @arcana/site dev",
     "build": "pnpm --filter @arcana/site build",
     "start": "pnpm --filter @arcana/site start",
+    "seed": "pnpm --filter @arcana/site exec tsx --conditions=react-server seed.ts",
+    "test": "pnpm --filter @arcana/site exec tsx --conditions=react-server test.ts",
     "typecheck": "pnpm -r exec tsc --noEmit",
-    "gen": "python3 ../gen_data.py"
+    "gen": "python3 gen_data.py && python3 gen_art.py"
   }
 }
