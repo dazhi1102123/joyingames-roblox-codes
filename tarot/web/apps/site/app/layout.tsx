@@ -27,6 +27,8 @@ const NAV = [
   { href: "/cards", label: "The Deck" },
   { href: "/spreads", label: "Spreads" },
   { href: "/report", label: "Report" },
+  { href: "/daily", label: "Today" },
+  { href: "/learn", label: "Learn" },
   { href: "/readers", label: "Readers" },
 ]
 
@@ -73,9 +75,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div>
               <h4>The Deck</h4>
               <a href="/cards">All 78 cards</a>
-              <a href="/cards?arcana=major">Major arcana</a>
-              <a href="/cards?arcana=minor">Minor arcana</a>
               <a href="/spreads">Spreads explained</a>
+              <a href="/learn">How to read tarot</a>
+              <a href="/daily">Today&rsquo;s card</a>
             </div>
             <div>
               <h4>By question</h4>

@@ -1371,10 +1371,6 @@ def _sitemap_urls():
         urls.append((url_for("readers_index"), "0.9"))
         urls += [(url_for("reader_profile", slug=r["slug"]), "0.7")
                  for r in store.list_readers()]
-    if app.config["HUMAN_READINGS"]:
-        urls.append((url_for("readers_index"), "0.9"))
-        urls += [(url_for("reader_profile", slug=r["slug"]), "0.7")
-                 for r in store.list_readers()]
     urls += [(url_for("birth_date_page", slug=s), "0.7") for s in personal.all_date_slugs()]
     urls += [(url_for("reading", slug=s), "0.8") for s in SPREADS]
     for card in CARDS:

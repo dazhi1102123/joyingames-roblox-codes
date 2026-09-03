@@ -4,7 +4,7 @@
  * same code runs in a server component, in a browser, and in React Native.
  */
 
-import { CARDS, SPREADS, SUITS } from "./data.generated"
+import { CARDS, CARDS as ALL, CORRESPONDENCES, SPREADS, SUITS } from "./data.generated"
 import type { Card, DrawnCard, Reading, Spread, SuitSlug } from "./types"
 
 const BY_SLUG = new Map(CARDS.map((c) => [c.slug, c]))
@@ -193,4 +193,112 @@ export function readSpread(spreadSlug: string, question = "", allowReversed = tr
     spread,
     question,
   )
+}
+
+// --------------------------------------------------------------------------
+// Correspondences, framed as observation rather than prescription
+// --------------------------------------------------------------------------
+
+
+/** The line the whole correspondence feature has to stay inside.
+ *
+ * A colour and a stone are traditional associations. The moment the copy says
+ * "wear this to attract" it is selling a remedy, which is both a §5 UWG
+ * problem and a different business than this one.
+ */
+export const SAFE_FRAMING =
+  "Correspondences are traditional associations, not remedies. Say 'the stone " +
+  "associated with this card', never 'wear this to attract' or 'this will " +
+  "protect you from'."
+
+/** One sentence on the card's shadow, phrased as observation not prophecy.
+ *
+ * A card's reversed keywords are exactly the failure mode of its upright
+ * meaning, which makes them the honest source for a caution line. Nothing
+ * here predicts an event.
+ */
+export function watchLine(card: Card, reversed = false): string {
+  if (reversed) {
+    return (
+      `Worth watching: ${card.name} is already reversed, so the shadow is the ` +
+      `surface — ${card.rev_keys.slice(0, 2).join(", ")}. Read it as a description ` +
+      "of where you are, not a forecast of where you are going."
+    )
+  }
+  return (
+    "Worth watching: every card has a way of curdling, and this one curdles into " +
+    `${card.rev_keys.slice(0, 2).join(", ")}. Noticing that early is the whole use ` +
+    "of knowing it."
+  )
+}
+
+export interface Brief {
+  card: Card
+  reversed: boolean
+  colour: string
+  hex: string
+  stone: string
+  metal: string
+  source: string
+  watch: string
+  keywords: string[]
+  body: string
+}
+
+/** Everything the daily line and the report footer need for one card. */
+export function briefFor(card: Card, reversed = false): Brief {
+  const c = CORRESPONDENCES[card.slug]
+  return {
+    card,
+    reversed,
+    colour: c?.colour ?? "",
+    hex: c?.hex ?? "",
+    stone: c?.stone ?? "",
+    metal: c?.metal ?? "",
+    source: c?.source ?? "",
+    watch: watchLine(card, reversed),
+    keywords: (reversed ? card.rev_keys : card.up_keys).slice(0, 3),
+    body: reversed ? card.rev : card.up,
+  }
+}
+
+// --------------------------------------------------------------------------
+// Birth cards
+// --------------------------------------------------------------------------
+
+const MAJORS = ALL.filter((c) => c.arcana === "major")
+
+const digitSum = (n: number) =>
+  String(n).split("").reduce((sum, d) => sum + Number(d), 0)
+
+/** Personality and soul cards for a birth date.
+ *
+ * Add month + day + year and reduce by digit sum until 22 or below; 22 folds
+ * to The Fool. A two-digit result has its own digit sum sitting beneath it as
+ * the soul card, which is why some people get two cards and others one.
+ */
+export function birthCards(year: number, month: number, day: number) {
+  let total = month + day + year
+  while (total > 22) total = digitSum(total)
+  if (total === 22) total = 0
+
+  const soulN = total > 9 ? digitSum(total) : total
+  return { personality: MAJORS[total], soul: MAJORS[soulN] }
+}
+
+/** The card for one calendar year, on the same reduction. */
+export function yearCard(cardYear: number, month: number, day: number): Card {
+  let total = month + day + cardYear
+  while (total > 22) total = digitSum(total)
+  if (total === 22) total = 0
+  return MAJORS[total]
+}
+
+/** The same card for everyone, changing at midnight. Deterministic on
+ *  purpose: a "card of the day" that differs per visitor is not a day's card. */
+export function cardOfTheDay(today = new Date()): Card {
+  const days = Math.floor(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()) / 86_400_000,
+  )
+  return ALL[days % ALL.length]
 }

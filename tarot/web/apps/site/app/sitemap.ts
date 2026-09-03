@@ -1,38 +1,62 @@
 import type { MetadataRoute } from "next"
 import { CARDS, CONTEXTS, SPREADS } from "@arcana/core"
+import { comboPairs, comboScope } from "@/lib/pages"
 import { canonical } from "@/lib/site"
 
-/** Next builds this into /sitemap.xml at build time.
- *
- * Priorities are relative, not absolute: card pages are the pages that earn
- * search traffic, so they outrank the marketing surface here.
- */
-export default function sitemap(): MetadataRoute.Sitemap {
-  const entries: MetadataRoute.Sitemap = [
+/** Next splits this into /sitemap/[id].xml and emits an index automatically
+ *  once generateSitemaps is exported, which is what keeps a matrix of this
+ *  size inside the 50,000-URL limit per file. */
+const CHUNK = 20_000
+
+function allUrls(): MetadataRoute.Sitemap {
+  const urls: MetadataRoute.Sitemap = [
     { url: canonical("/"), priority: 1, changeFrequency: "weekly" },
     { url: canonical("/cards"), priority: 0.9, changeFrequency: "monthly" },
+    { url: canonical("/report"), priority: 0.9, changeFrequency: "monthly" },
+    { url: canonical("/readers"), priority: 0.9, changeFrequency: "weekly" },
+    { url: canonical("/daily"), priority: 0.8, changeFrequency: "daily" },
     { url: canonical("/spreads"), priority: 0.7, changeFrequency: "monthly" },
+    { url: canonical("/learn"), priority: 0.6, changeFrequency: "monthly" },
   ]
 
   for (const spread of Object.values(SPREADS)) {
-    entries.push({
-      url: canonical(`/reading/${spread.slug}`),
-      priority: 0.8,
-      changeFrequency: "monthly",
-    })
+    urls.push({ url: canonical(`/reading/${spread.slug}`), priority: 0.8 })
+  }
+
+  // The context hubs, then the 390 per-card-per-context pages. These are what
+  // the site is actually found by, so they outrank the marketing surface.
+  for (const context of CONTEXTS) {
+    if (context.slug === "general") continue
+    urls.push({ url: canonical(`/cards/context/${context.slug}`), priority: 0.85 })
   }
 
   for (const card of CARDS) {
-    entries.push({
-      url: canonical(`/cards/${card.slug}`),
-      priority: 0.9,
-      changeFrequency: "monthly",
-    })
+    urls.push({ url: canonical(`/cards/${card.slug}`), priority: 0.9 })
+    for (const context of CONTEXTS) {
+      if (context.slug === "general" || !card.ctx[context.slug]) continue
+      urls.push({ url: canonical(`/cards/${card.slug}/${context.slug}`), priority: 0.8 })
+    }
   }
 
-  for (const page of ["disclaimer", "privacy", "terms", "impressum"]) {
-    entries.push({ url: canonical(`/legal/${page}`), priority: 0.3 })
+  // Combination pages, only as far as COMBO_SITEMAP_SCOPE allows. Advertising
+  // six thousand thin pages on a new domain is how crawl budget gets cut.
+  for (const [a, b] of comboPairs()) {
+    urls.push({ url: canonical(`/combinations/${a}/${b}`), priority: 0.5 })
   }
 
-  return entries
+  // Legal pages are noindex, so they are deliberately not listed.
+  return urls
 }
+
+/** How many sitemap files the corpus needs. The index route reads this too,
+ *  so the two can never disagree about how many exist. */
+export const SITEMAP_PAGES = Math.max(1, Math.ceil(allUrls().length / CHUNK))
+
+export function generateSitemaps() {
+  return Array.from({ length: SITEMAP_PAGES }, (_, id) => ({ id }))
+}
+
+export default function sitemap({ id }: { id: number }): MetadataRoute.Sitemap {
+  return allUrls().slice(id * CHUNK, (id + 1) * CHUNK)
+}
+

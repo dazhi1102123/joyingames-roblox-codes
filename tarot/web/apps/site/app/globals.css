@@ -382,3 +382,39 @@ h2.label {
   font-family: var(--mono); font-size: .72rem; color: var(--ink-3);
 }
 .preview-list .note { font-size: .8rem; margin: 0; }
+
+.combo-pair {
+  list-style: none; padding: 0; margin: 1.6rem 0 2rem;
+  display: flex; gap: 1.6rem; flex-wrap: wrap;
+}
+.combo-pair li { width: 150px; }
+.combo-pair a { text-decoration: none; color: inherit; display: block; }
+
+/* --- report intake ------------------------------------------------------- */
+
+.focus { border: 0; padding: 0; margin: 0; display: grid; gap: .5rem; }
+.focus legend { padding: 0; margin-bottom: .5rem; }
+.focus label {
+  display: flex; align-items: flex-start; gap: .7rem;
+  padding: .7rem .9rem; cursor: pointer;
+  background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+}
+.focus label.on { border-color: var(--ink-3); background: var(--surface-2); }
+.focus label input { margin: .35rem 0 0; }
+.focus label span { display: grid; gap: .1rem; }
+.focus label strong { font-weight: 400; }
+.focus label em { font-size: .85rem; color: var(--ink-2); font-style: normal; }
+
+.report { margin-top: 3rem; padding-top: 2rem; border-top: 2px solid var(--ink); }
+.asked {
+  margin: 1.2rem 0 2rem; padding: .8rem 1.1rem;
+  border-left: 3px solid var(--rule-hard);
+  font-style: italic; color: var(--ink-2);
+}
+.brief {
+  margin-top: 2.4rem; padding: 1.4rem 1.6rem;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+}
+.brief h3 { font-family: var(--disp); font-size: 1.15rem; }
+.neighbours em { font-size: .78rem; color: var(--ink-3); font-style: normal; }
