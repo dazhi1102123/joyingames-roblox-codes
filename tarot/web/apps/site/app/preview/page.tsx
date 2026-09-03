@@ -1,14 +1,26 @@
 import type { Metadata } from "next"
-import { CARDS, SPREADS, CONTEXTS } from "@arcana/core"
+import {
+  CARDS,
+  CONTEXTS,
+  SPREADS,
+  allDateSlugs,
+  drawCards,
+  encodeReading,
+} from "@arcana/core"
+import { comboPairs, comboScope } from "@/lib/pages"
 import { listReaders } from "@/lib/readers"
 import { db } from "@/lib/db"
 
 /** Every route in one place, for looking the site over.
  *
  * Not part of the product: noindex, and disallowed in robots.txt. It exists
- * because reviewing a 99-page site by typing URLs is miserable, and because a
- * link to a *seeded* order is the only way to see a delivered reading without
- * first hunting the token out of the database.
+ * because reviewing a 1,250-page site by typing URLs is miserable, and because
+ * a link to a *seeded* order is the only way to see a delivered reading
+ * without first hunting the token out of the database.
+ *
+ * Every count here is computed from the corpus rather than written down. The
+ * previous version said "91 URLs" long after there were 1,237, which is what
+ * a hand-maintained index of a generated site always becomes.
  */
 export const metadata: Metadata = {
   title: "All pages",
@@ -61,15 +73,54 @@ export default function Preview() {
     .prepare("SELECT token, email FROM subscribers WHERE status = 'confirmed' LIMIT 1")
     .get() as { token: string; email: string } | undefined
 
+  const contextPages = CARDS.reduce(
+    (sum, c) => sum + CONTEXTS.filter((x) => x.slug !== "general" && c.ctx[x.slug]).length,
+    0,
+  )
+  const total =
+    9 +                              // main, report, daily, learn, birth-card, my-deck, spreads, readers, preview
+    Object.keys(SPREADS).length +
+    CARDS.length +
+    contextPages +
+    (CONTEXTS.length - 1) +          // context hubs
+    comboPairs().length +
+    allDateSlugs().length +
+    4                                // legal
+  const sampleCode = encodeReading("three-card", drawCards(3, true))
+
   return (
     <article className="prose-wide">
       <p className="eyebrow">Not a public page</p>
       <h1>Every page, in one list</h1>
       <p className="lede">
-        {CARDS.length + Object.keys(SPREADS).length + 10} routes. This page is
-        noindex and disallowed in robots.txt — it is here so the site can be
-        reviewed by clicking rather than by typing URLs.
+        {total.toLocaleString()} pages. This page is noindex and disallowed in
+        robots.txt — it is here so the site can be reviewed by clicking rather
+        than by typing URLs.
       </p>
+
+      <dl className="facts">
+        <div>
+          <dt>Card pages</dt>
+          <dd>{CARDS.length} general + {contextPages} by context</dd>
+        </div>
+        <div>
+          <dt>Combination pages</dt>
+          <dd>
+            {comboPairs().length.toLocaleString()} published ·{" "}
+            {(CARDS.length * (CARDS.length - 1)).toLocaleString()} possible
+          </dd>
+        </div>
+        <div>
+          <dt>Combination scope</dt>
+          <dd>
+            <code>COMBO_SITEMAP_SCOPE={comboScope()}</code>
+          </dd>
+        </div>
+        <div>
+          <dt>Birth date pages</dt>
+          <dd>{allDateSlugs().length}</dd>
+        </div>
+      </dl>
 
       <Group
         title="Main"
@@ -77,7 +128,61 @@ export default function Preview() {
           { href: "/", label: "Home" },
           { href: "/cards", label: "The deck — all 78" },
           { href: "/spreads", label: "Spreads explained" },
+          { href: "/learn", label: "How to read tarot" },
+          { href: "/report", label: "Written report", hint: "intake → report, all in-browser" },
+          { href: "/daily", label: "Card of the day", hint: "same card for everyone" },
+          { href: "/birth-card", label: "Find your birth card" },
+          { href: "/my-deck", label: "Your reading history", hint: "localStorage" },
           { href: "/readers", label: "Readings by a person" },
+        ]}
+      />
+
+      <Group
+        title="By question"
+        note="The context hubs the footer links to. Yes-or-no has its own shape — cards carry a lean, not a paragraph."
+        links={CONTEXTS.filter((c) => c.slug !== "general").map((c) => ({
+          href: `/cards/context/${c.slug}`,
+          label: c.label,
+        }))}
+      />
+
+      <Group
+        title="A card, by context"
+        note={`${contextPages} pages. The same card answers a different question on each — this is what the site is found by.`}
+        links={CONTEXTS.filter((c) => c.slug !== "general" && CARDS[16].ctx[c.slug]).map(
+          (c) => ({
+            href: `/cards/the-tower/${c.slug}`,
+            label: `The Tower — ${c.label}`,
+          }),
+        )}
+      />
+
+      <Group
+        title="Combinations"
+        note={`${comboPairs().length} published of ${(CARDS.length * (CARDS.length - 1)).toLocaleString()} possible. Staged on purpose: six thousand thin pages at once is how a new domain loses its crawl budget.`}
+        links={[
+          { href: "/combinations/the-tower/the-star", label: "The Tower + The Star" },
+          { href: "/combinations/the-fool/the-world", label: "The Fool + The World" },
+          { href: "/combinations/death/temperance", label: "Death + Temperance" },
+        ]}
+      />
+
+      <Group
+        title="Birth dates"
+        note={`${allDateSlugs().length} pages, one per calendar date, 29 February included.`}
+        links={[
+          { href: "/birth-card/april-3", label: "Born on April 3" },
+          { href: "/birth-card/february-29", label: "Born on February 29", hint: "leap day" },
+          { href: "/birth-card/december-25", label: "Born on December 25" },
+        ]}
+      />
+
+      <Group
+        title="Shared reading"
+        note="The whole reading travels in the URL. Nothing is stored, so the link cannot be revoked and there is nothing to leak."
+        links={[
+          { href: `/r/${sampleCode}`, label: "A shared three-card reading", hint: `${sampleCode.length} characters` },
+          { href: "/r/not-a-real-code", label: "A malformed code", hint: "should 404, not error" },
         ]}
       />
 
@@ -176,7 +281,9 @@ export default function Preview() {
       <Group
         title="Machine-readable"
         links={[
-          { href: "/sitemap.xml", label: "sitemap.xml", hint: "91 URLs" },
+          { href: "/sitemap.xml", label: "sitemap.xml", hint: "index" },
+          { href: "/sitemap/0.xml", label: "sitemap/0.xml", hint: "the URLs themselves" },
+          { href: "/healthz", label: "healthz", hint: "asserts the corpus loaded" },
           { href: "/robots.txt", label: "robots.txt" },
         ]}
       />

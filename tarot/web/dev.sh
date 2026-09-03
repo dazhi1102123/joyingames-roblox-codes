@@ -60,7 +60,7 @@ ADMIN_KEY=$(sed -n 's/^ADMIN_KEY=//p' "$ENV")
 if [ "$MODE" = "--dev" ]; then
   say "Starting the dev server"
 else
-  say "Building (99 pages, about a minute)"
+  say "Building (over 1,200 pages, about a minute)"
   $PNPM run build
 fi
 
@@ -80,4 +80,7 @@ EOF
 if [ "$MODE" = "--dev" ]; then
   exec $PNPM --filter @arcana/site exec next dev -p "$PORT"
 fi
+# Opens the browser once the port answers, not before.
+node open-when-ready.mjs "$PORT" /preview &
+
 exec $PNPM --filter @arcana/site exec next start -p "$PORT"

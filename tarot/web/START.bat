@@ -97,7 +97,7 @@ if errorlevel 1 (
 
 rem --- build -----------------------------------------------------------------
 echo.
-echo   Building ^(99 pages, about a minute^) ...
+echo   Building ^(over 1,200 pages - a few minutes on the first run^) ...
 call %PNPM% run build
 if errorlevel 1 (
     echo.
@@ -122,7 +122,10 @@ echo     Press Ctrl-C to stop the server.
 echo   --------------------------------------------------------------------
 echo.
 
-start "" "http://localhost:%PORT%/preview"
+rem The waiter polls the port and opens the browser once it answers.
+rem Opening it first, as this used to, races the boot and shows the
+rem visitor a connection error seconds before the site is up.
+start /b "" node open-when-ready.mjs %PORT% /preview
 call %PNPM% --filter @arcana/site exec next start -p %PORT%
 
 echo.
