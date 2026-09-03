@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next"
-import { CARDS, CONTEXTS, SPREADS } from "@arcana/core"
+import { CARDS, CONTEXTS, SPREADS, allDateSlugs } from "@arcana/core"
 import { comboPairs, comboScope } from "@/lib/pages"
 import { canonical } from "@/lib/site"
 
@@ -17,7 +17,14 @@ function allUrls(): MetadataRoute.Sitemap {
     { url: canonical("/daily"), priority: 0.8, changeFrequency: "daily" },
     { url: canonical("/spreads"), priority: 0.7, changeFrequency: "monthly" },
     { url: canonical("/learn"), priority: 0.6, changeFrequency: "monthly" },
+    { url: canonical("/birth-card"), priority: 0.9, changeFrequency: "monthly" },
   ]
+
+  // 366 date pages. "birth card april 3" is a question with one answer, and a
+  // page per date answers it instead of making someone operate a form.
+  for (const slug of allDateSlugs()) {
+    urls.push({ url: canonical(`/birth-card/${slug}`), priority: 0.7 })
+  }
 
   for (const spread of Object.values(SPREADS)) {
     urls.push({ url: canonical(`/reading/${spread.slug}`), priority: 0.8 })

@@ -418,3 +418,13 @@ h2.label {
 }
 .brief h3 { font-family: var(--disp); font-size: 1.15rem; }
 .neighbours em { font-size: .78rem; color: var(--ink-3); font-style: normal; }
+
+.order-form.birth { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); max-width: 460px; }
+.birth-result { margin: 1.8rem 0; }
+.birth-result li { width: 132px; }
+
+.history { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: .8rem; }
+.history li { display: grid; gap: .2rem; padding-bottom: .7rem; border-bottom: 1px solid var(--rule); }
+.history .line { display: flex; flex-wrap: wrap; gap: .5rem; font-size: .9rem; }
+.mono { font-family: var(--mono); font-size: .68rem; letter-spacing: .06em; color: var(--ink-3); }
+.deck-grid em.mono { font-style: normal; }

@@ -78,6 +78,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a href="/spreads">Spreads explained</a>
               <a href="/learn">How to read tarot</a>
               <a href="/daily">Today&rsquo;s card</a>
+              <a href="/birth-card">Find your birth card</a>
+              <a href="/my-deck">Your reading history</a>
             </div>
             <div>
               <h4>By question</h4>

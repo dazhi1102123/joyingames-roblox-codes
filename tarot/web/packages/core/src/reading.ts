@@ -302,3 +302,103 @@ export function cardOfTheDay(today = new Date()): Card {
   )
   return ALL[days % ALL.length]
 }
+
+// --------------------------------------------------------------------------
+// Share codec
+//
+// A reading is (spread, [(card, reversed)]). Packed one byte per card plus a
+// leading spread byte, then base64url -- a ten-card Celtic Cross fits in 15
+// characters, short enough to paste anywhere without a shortener.
+// --------------------------------------------------------------------------
+
+const SPREAD_ORDER = Object.keys(SPREADS)
+const CARD_ORDER = ALL.map((c) => c.slug)
+const CARD_INDEX = new Map(CARD_ORDER.map((slug, i) => [slug, i]))
+
+function toBase64Url(bytes: Uint8Array): string {
+  let binary = ""
+  for (const b of bytes) binary += String.fromCharCode(b)
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+}
+
+function fromBase64Url(code: string): Uint8Array | null {
+  try {
+    const padded = code.replace(/-/g, "+").replace(/_/g, "/") +
+      "=".repeat((4 - (code.length % 4)) % 4)
+    const binary = atob(padded)
+    return Uint8Array.from(binary, (ch) => ch.charCodeAt(0))
+  } catch {
+    return null
+  }
+}
+
+export function encodeReading(spreadSlug: string, drawn: DrawSpec[]): string {
+  const index = SPREAD_ORDER.indexOf(spreadSlug)
+  if (index < 0) throw new Error("unknown spread")
+  const bytes = new Uint8Array(drawn.length + 1)
+  bytes[0] = index
+  drawn.forEach((d, i) => {
+    bytes[i + 1] = CARD_INDEX.get(d.slug)! * 2 + (d.reversed ? 1 : 0)
+  })
+  return toBase64Url(bytes)
+}
+
+/** Returns null on anything malformed. Never throws -- this parses a value
+ *  straight out of a URL, so hostile input is the expected case. */
+export function decodeReading(
+  code: string,
+): { spread: Spread; drawn: DrawSpec[] } | null {
+  if (!code || code.length > 32) return null
+  const raw = fromBase64Url(code)
+  if (!raw || raw.length < 2 || raw[0] >= SPREAD_ORDER.length) return null
+
+  const spread = SPREADS[SPREAD_ORDER[raw[0]]]
+  if (raw.length - 1 !== spread.count) return null
+
+  const drawn: DrawSpec[] = []
+  const seen = new Set<number>()
+  for (let i = 1; i < raw.length; i++) {
+    const index = raw[i] >> 1
+    const reversed = (raw[i] & 1) === 1
+    // A deck cannot deal the same card twice; a code that says otherwise was
+    // edited by hand.
+    if (index >= CARD_ORDER.length || seen.has(index)) return null
+    seen.add(index)
+    drawn.push({ slug: CARD_ORDER[index], reversed })
+  }
+  return { spread, drawn }
+}
+
+// --------------------------------------------------------------------------
+// Calendar
+// --------------------------------------------------------------------------
+
+export const MONTHS = [
+  ["january", "January", 31], ["february", "February", 29],
+  ["march", "March", 31], ["april", "April", 30],
+  ["may", "May", 31], ["june", "June", 30],
+  ["july", "July", 31], ["august", "August", 31],
+  ["september", "September", 30], ["october", "October", 31],
+  ["november", "November", 30], ["december", "December", 31],
+] as const
+
+/** 29 February is included on purpose: someone born on it still has a birth
+ *  card, and a page that 404s on their birthday is the wrong answer. */
+export function allDateSlugs(): string[] {
+  return MONTHS.flatMap(([slug, , days]) =>
+    Array.from({ length: days as number }, (_, i) => `${slug}-${i + 1}`),
+  )
+}
+
+export function parseDateSlug(slug: string): { month: number; day: number } | null {
+  const at = slug.lastIndexOf("-")
+  if (at < 0) return null
+  const name = slug.slice(0, at)
+  const day = Number(slug.slice(at + 1))
+  const month = MONTHS.findIndex(([s]) => s === name)
+  if (month < 0 || !Number.isInteger(day)) return null
+  if (day < 1 || day > (MONTHS[month][2] as number)) return null
+  return { month: month + 1, day }
+}
+
+export const monthName = (month: number) => MONTHS[month - 1][1]

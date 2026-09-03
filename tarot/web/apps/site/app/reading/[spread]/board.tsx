@@ -18,6 +18,29 @@ import { CardFace } from "../../card-face"
  * fully static -- the CDN serves one HTML file to everyone and the randomness
  * costs no server call at all.
  */
+const HISTORY_KEY = "arcana:history"
+const HISTORY_LIMIT = 200
+
+/** Keep the draw in this browser so /my-deck has something to show.
+ *
+ * The question is deliberately not stored. What someone asked the cards is the
+ * sensitive half, and the page only needs which cards came up.
+ */
+function remember(spreadName: string, drawn: Array<{ slug: string; reversed: boolean }>) {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY)
+    const history = raw ? JSON.parse(raw) : []
+    const next = [
+      { at: Date.now(), spread: spreadName, cards: drawn },
+      ...(Array.isArray(history) ? history : []),
+    ].slice(0, HISTORY_LIMIT)
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(next))
+  } catch {
+    // Private browsing, a full quota, or storage switched off. None of those
+    // are a reason to fail the reading the visitor actually asked for.
+  }
+}
+
 export function ReadingBoard({ spread }: { spread: Spread }) {
   const [reading, setReading] = useState<Reading | null>(null)
   const [question, setQuestion] = useState("")
@@ -26,14 +49,18 @@ export function ReadingBoard({ spread }: { spread: Spread }) {
   const draw = useCallback(() => {
     const drawn = drawCards(spread.count, reversals)
     setReading(composeReading(hydrate(drawn, spread), spread, question.trim()))
+    remember(spread.name, drawn)
   }, [spread, reversals, question])
 
   // First draw after mount, never during render -- crypto is not available
   // while the server is producing the static HTML.
   useEffect(() => {
-    setReading((current) => current ?? composeReading(
-      hydrate(drawCards(spread.count, true), spread), spread, "",
-    ))
+    setReading((current) => {
+      if (current) return current
+      const drawn = drawCards(spread.count, true)
+      remember(spread.name, drawn)
+      return composeReading(hydrate(drawn, spread), spread, "")
+    })
   }, [spread])
 
   return (
