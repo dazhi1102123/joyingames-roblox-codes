@@ -1,0 +1,642 @@
+<title>Arcana Press</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Spectral:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/*__TOKENS__*/
+
+/* The tokens above are the site's own, lifted verbatim, so this preview and
+   the running app cannot drift apart on colour or type. Everything below is
+   layout for the single-file case. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link); }
+img { max-width: 100%; display: block; }
+
+h1, h2, h3, h4 {
+  font-family: var(--disp); font-weight: 400; line-height: 1.15;
+  margin: 0; text-wrap: balance;
+}
+h1 { font-size: clamp(1.9rem, 1.3rem + 2.2vw, 3.1rem); letter-spacing: -0.01em; }
+h2 { font-size: clamp(1.35rem, 1.1rem + 1vw, 1.9rem); }
+h3 { font-size: 1.1rem; }
+p { margin: 0; max-width: 65ch; }
+
+.eyebrow {
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--accent);
+}
+.lede { font-size: 1.02rem; color: var(--ink-2); }
+.note { font-size: .88rem; color: var(--ink-2); }
+.mono { font-family: var(--mono); font-size: .72rem; color: var(--ink-3); }
+
+/* --- chrome ------------------------------------------------------------- */
+
+.masthead {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 1.4rem; flex-wrap: wrap;
+  padding: .8rem clamp(1rem, 4vw, 2.5rem);
+  background: var(--surface); border-bottom: 1px solid var(--rule);
+}
+.wordmark {
+  display: flex; align-items: center; gap: .55rem;
+  font-family: var(--disp); font-size: 1.05rem; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ink); text-decoration: none;
+  white-space: nowrap;
+}
+.wordmark i {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--c-yellow); border: 2px solid var(--card-line);
+  box-shadow: inset 0 0 0 3px var(--card-face);
+}
+.tabs { display: flex; gap: .2rem; flex: 1; flex-wrap: wrap; }
+.tabs button {
+  font-family: var(--mono); font-size: .7rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-2);
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: .35rem .5rem; cursor: pointer;
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+.theme {
+  font-family: var(--mono); font-size: .66rem; letter-spacing: .1em;
+  text-transform: uppercase; padding: .3rem .65rem; cursor: pointer;
+  background: none; color: var(--ink-2);
+  border: 1px solid var(--rule-hard); border-radius: var(--radius);
+}
+.theme:hover { color: var(--ink); border-color: var(--ink-3); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* --- page frame --------------------------------------------------------- */
+
+.view { display: none; }
+.view[data-active] { display: block; }
+
+.wrap {
+  max-width: 1120px; margin: 0 auto;
+  padding: clamp(2rem, 4vw, 3.4rem) clamp(1rem, 4vw, 2.5rem);
+  display: grid; gap: 1.1rem;
+}
+.band { background: var(--surface); }
+.stack { display: grid; gap: 1.1rem; }
+
+.notice {
+  background: var(--surface-2); border-left: 3px solid var(--accent);
+  padding: .9rem 1.1rem; font-size: .88rem; color: var(--ink-2);
+  display: grid; gap: .4rem;
+}
+.notice strong { color: var(--ink); }
+
+/* --- hero --------------------------------------------------------------- */
+
+.hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 2.5rem; align-items: center; }
+.hero .stack { position: relative; z-index: 1; }
+.stat { font-family: var(--mono); font-size: .72rem; color: var(--ink-3); line-height: 1.85; }
+
+.fan { position: relative; height: 300px; }
+.fan div {
+  position: absolute; top: 0; left: 50%; width: 150px;
+  transform-origin: 50% 92%;
+  filter: drop-shadow(0 10px 20px var(--shadow));
+}
+.fan div:nth-child(1) { transform: translateX(-50%) translateX(-148px) rotate(-13deg); }
+.fan div:nth-child(2) { transform: translateX(-50%) translateX(-49px)  rotate(-4.5deg); }
+.fan div:nth-child(3) { transform: translateX(-50%) translateX(49px)   rotate(4.5deg); }
+.fan div:nth-child(4) { transform: translateX(-50%) translateX(148px)  rotate(13deg); }
+
+/* --- cards -------------------------------------------------------------- */
+
+.face img {
+  width: 100%; height: auto;
+  border: 1px solid var(--card-line); border-radius: 5px;
+  background: var(--card-face);
+}
+.face.rev img { transform: rotate(180deg); }
+
+.btn {
+  font-family: var(--mono); font-size: .72rem; letter-spacing: .1em;
+  text-transform: uppercase; text-decoration: none;
+  padding: .7rem 1.15rem; cursor: pointer;
+  color: var(--ink); background: none;
+  border: 1px solid var(--rule-hard); border-radius: var(--radius);
+}
+.btn:hover { border-color: var(--ink); }
+.btn.solid { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.row { display: flex; gap: .7rem; flex-wrap: wrap; align-items: center; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: .9rem; }
+.tile {
+  display: grid; gap: .45rem; align-content: start;
+  padding: 1rem 1.1rem; text-align: left;
+  background: var(--paper); color: inherit;
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  cursor: pointer; font: inherit;
+}
+.tile:hover { border-color: var(--ink-3); }
+.tile h3 { font-family: var(--disp); }
+.tile p { font-size: .89rem; color: var(--ink-2); }
+.tile footer {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: .6rem; margin-top: .35rem; padding-top: .55rem;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono); font-size: .66rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent);
+}
+.pips { display: inline-flex; gap: 2px; }
+.pips i { width: 6px; height: 10px; border: 1px solid var(--rule-hard); }
+.pips i.on { background: var(--c-yellow); border-color: var(--card-line); }
+
+/* --- deck grid ---------------------------------------------------------- */
+
+.deck { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 1rem; }
+.deck button {
+  display: grid; gap: .4rem; padding: 0; background: none; border: 0;
+  cursor: pointer; font: inherit; text-align: center; color: inherit;
+}
+.deck button:hover .face img { box-shadow: 0 6px 16px var(--shadow); }
+.deck .cap { font-size: .78rem; color: var(--ink-2); line-height: 1.3; }
+
+/* --- card detail -------------------------------------------------------- */
+
+.detail { display: grid; grid-template-columns: 270px 1fr; gap: 2.4rem; align-items: start; }
+.facts { display: grid; gap: 0; margin: 0; }
+.facts > div {
+  display: flex; justify-content: space-between; gap: 1rem;
+  padding: .5rem 0; border-bottom: 1px solid var(--rule);
+}
+.facts dt {
+  font-family: var(--mono); font-size: .64rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.facts dd { margin: 0; font-size: .89rem; display: flex; align-items: center; gap: .4rem; }
+.swatch { width: 10px; height: 10px; border: 1px solid var(--card-line); }
+
+.keys { display: flex; flex-wrap: wrap; gap: .35rem; list-style: none; padding: 0; margin: 0; }
+.keys li {
+  font-family: var(--mono); font-size: .68rem; padding: .25rem .55rem;
+  border: 1px solid var(--rule-hard); border-radius: var(--radius); color: var(--ink-2);
+}
+.keys li.r { border-style: dashed; color: var(--ink-3); }
+
+.label {
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--accent);
+  padding-bottom: .3rem; border-bottom: 1px solid var(--rule);
+}
+
+/* --- reading ------------------------------------------------------------ */
+
+.controls { display: grid; gap: .8rem; justify-items: center; max-width: 520px; margin: 0 auto; }
+.controls label { display: grid; gap: .3rem; width: 100%; }
+.controls input[type="text"] {
+  width: 100%; padding: .65rem .8rem; font-family: var(--body); font-size: .94rem;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule-hard); border-radius: var(--radius);
+}
+.controls label.check {
+  display: flex; align-items: center; gap: .45rem; width: auto;
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-2);
+}
+
+.spread {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 132px));
+  gap: 1.2rem; justify-content: center; justify-items: center;
+  list-style: none; padding: 0; margin: 0 auto; max-width: 740px;
+}
+.spread > li { width: 100%; max-width: 132px; display: grid; gap: .35rem; text-align: center; }
+.spread .pos {
+  font-family: var(--mono); font-size: .58rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.spread .cap { font-size: .8rem; }
+.spread .tag {
+  justify-self: center;
+  font-family: var(--mono); font-size: .55rem; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent);
+  border: 1px solid var(--accent); border-radius: var(--radius);
+  padding: .05rem .35rem;
+}
+.reading { border-top: 2px solid var(--ink); padding-top: 1.4rem; display: grid; gap: 1rem; }
+
+.positions { display: grid; gap: 0; margin: 0; }
+.positions > div { padding: .55rem 0; border-bottom: 1px solid var(--rule); }
+.positions dt { font-family: var(--disp); font-size: .98rem; }
+.positions dd { margin: .15rem 0 0; font-size: .88rem; color: var(--ink-2); }
+
+footer.foot {
+  background: var(--surface); border-top: 1px solid var(--rule);
+  padding: 2rem clamp(1rem, 4vw, 2.5rem);
+  font-size: .76rem; color: var(--ink-3); line-height: 1.7;
+}
+footer.foot p { max-width: 1120px; margin: 0 auto; }
+
+@media (max-width: 860px) {
+  .hero, .detail { grid-template-columns: 1fr; }
+  .fan { height: 240px; transform: scale(.85); }
+  .detail aside { max-width: 240px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+
+<header class="masthead">
+  <a class="wordmark" href="#" onclick="go('home');return false"><i aria-hidden="true"></i>Arcana Press</a>
+  <nav class="tabs" id="tabs"></nav>
+  <button class="theme" id="theme" type="button">Dark</button>
+</header>
+
+<main id="main"></main>
+
+<footer class="foot">
+  <p>
+    Arcana Press is for entertainment and self-reflection only. Readings are not
+    advice — medical, legal, financial or otherwise — and nothing here predicts
+    the future. You must be 18 or older to use this site. Cards are drawn with
+    your browser&rsquo;s cryptographic random number generator.
+    <br>© 2026 OneFusion. Card artwork: Rider-Waite-Smith, 1909, illustrated by
+    Pamela Colman Smith — public domain.
+  </p>
+</footer>
+
+<script>
+const DATA = __DATA__;
+const ART  = __ART__;
+
+const BY_SLUG = new Map(DATA.cards.map(c => [c.slug, c]));
+
+/* ---------------------------------------------------------------------- *
+ * The reading engine, ported from the site's packages/core.
+ * ---------------------------------------------------------------------- */
+
+/** Uniform integer in [0, max) from the platform CSPRNG.
+ *  Rejection sampling, because a modulus of a 32-bit draw biases the low
+ *  indices — and the shuffle is the one mechanic a visitor is entitled to
+ *  be suspicious about. */
+function randomBelow(max) {
+  const limit = Math.floor(0xffffffff / max) * max;
+  const buf = new Uint32Array(1);
+  let v;
+  do { crypto.getRandomValues(buf); v = buf[0]; } while (v >= limit);
+  return v % max;
+}
+
+function drawCards(count, allowReversed) {
+  const deck = DATA.cards.slice(), out = [];
+  for (let i = 0; i < count; i++) {
+    const card = deck.splice(randomBelow(deck.length), 1)[0];
+    out.push({ card, reversed: allowReversed ? randomBelow(2) === 1 : false });
+  }
+  return out;
+}
+
+const FLIPPED = { yes: 'maybe', maybe: 'no', no: 'maybe' };
+const VERDICT = {
+  yes: 'Yes — and the card is not hedging.',
+  maybe: 'Not yet. The situation is still forming.',
+  no: 'No, or not on these terms.'
+};
+
+function synthesise(drawn, spread) {
+  if (spread.slug === 'yes-no') {
+    const { card, reversed } = drawn[0];
+    const lean = reversed ? FLIPPED[card.yesno] : card.yesno;
+    return `**The answer.** ${VERDICT[lean]} ${card.name} carries that direction ` +
+           `because it is about ${card.upKeys[0]}, and that is the axis your question turns on.`;
+  }
+
+  const majors = drawn.filter(d => d.card.arcana === 'major');
+  const revs = drawn.filter(d => d.reversed);
+  const suits = drawn.map(d => d.card.suit).filter(Boolean);
+  const bits = [];
+
+  if (majors.length >= Math.max(2, Math.floor(drawn.length / 2))) {
+    bits.push(`${majors.length} of ${drawn.length} cards are major arcana, which reads as a ` +
+      'situation larger than day-to-day management — the forces here are structural, not tactical.');
+  } else if (!majors.length) {
+    bits.push('No major arcana in this spread. That is good news: this is a practical ' +
+      'situation with practical levers, not a fated one.');
+  }
+
+  if (suits.length) {
+    const n = {};
+    suits.forEach(s => n[s] = (n[s] || 0) + 1);
+    let dom = suits[0];
+    suits.forEach(s => { if (n[s] > n[dom]) dom = s; });
+    if (n[dom] >= Math.max(2, Math.floor(suits.length / 2) + 1)) {
+      const s = DATA.suits[dom];
+      bits.push(`${s.name} dominate, so the centre of gravity is ${s.domain}. ` +
+        'Solutions from a different register will slide off.');
+    }
+  }
+
+  if (revs.length >= Math.max(2, Math.floor(drawn.length * 2 / 3))) {
+    bits.push('Most of the spread is reversed. That usually means the energy is present ' +
+      'but blocked, internalised or badly timed — rarely that it is absent.');
+  } else if (!revs.length && drawn.length > 1) {
+    bits.push('Nothing is reversed. What the cards describe is moving openly and outwardly.');
+  }
+
+  if (!bits.length) {
+    bits.push('The spread is mixed, which is the ordinary case: no single force is running ' +
+      'the situation, and the leverage is in the position you can actually act on.');
+  }
+  return '**Reading the spread as a whole.** ' + bits.join(' ');
+}
+
+function compose(drawn, spread, question) {
+  const out = [];
+  if (question) {
+    out.push(`You asked: *${question}* — here is what the ${spread.name.toLowerCase()} turned up.`);
+  }
+  drawn.forEach((d, i) => {
+    const pos = spread.positions[i] || { name: `Card ${i + 1}`, note: '' };
+    const keys = d.reversed ? d.card.revKeys : d.card.upKeys;
+    out.push(`**${pos.name} — ${d.card.name}, ${d.reversed ? 'reversed' : 'upright'}.** ` +
+             `${pos.note} ${d.reversed ? d.card.rev : d.card.up} ` +
+             `The threads to hold: ${keys.slice(0, 3).join(', ')}.`);
+  });
+  out.push(synthesise(drawn, spread));
+  return out;
+}
+
+/* ---------------------------------------------------------------------- *
+ * Rendering
+ * ---------------------------------------------------------------------- */
+
+const esc = s => String(s).replace(/[&<>"]/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/** The readings' Markdown subset. Escape first, THEN substitute — the other
+ *  order lets a card meaning containing a literal < escape the text node. */
+const md = s => esc(s)
+  .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  .replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+const face = (slug, rev) =>
+  `<div class="face${rev ? ' rev' : ''}"><img src="${ART[slug]}" alt="${esc(BY_SLUG.get(slug).name)} — Rider-Waite-Smith, 1909" loading="lazy" width="300" height="527"></div>`;
+
+const PAGES = [
+  { id: 'home',  label: 'Reading' },
+  { id: 'deck',  label: 'The Deck' },
+  { id: 'card',  label: 'A Card' },
+  ...Object.values(DATA.spreads).map(s => ({ id: 'r:' + s.slug, label: s.name })),
+];
+
+const FAN = ['the-star', 'the-tower', 'the-sun', 'the-moon'];
+
+function homeView() {
+  const spreads = Object.values(DATA.spreads);
+  return `
+  <section class="band"><div class="wrap hero">
+    <div class="stack">
+      <p class="eyebrow">Free · No signup · No card limit</p>
+      <h1>A tarot reading that answers the question you actually asked.</h1>
+      <p class="lede">Most free tarot sites hand you a card and a paragraph written years
+        ago about that card in general. This one reads your cards in their positions,
+        against your question, and tells you what the spread says as a whole — including
+        the parts you might not want to hear.</p>
+      <div class="row">
+        <button class="btn solid" onclick="go('r:three-card')">Draw three cards</button>
+        <button class="btn" onclick="go('r:daily')">Card of the day</button>
+      </div>
+      <p class="stat">78 cards · 6 spreads · 468 card meanings<br>
+        Nothing to install. Nothing to pay. No email required.</p>
+    </div>
+    <div class="fan" aria-hidden="true">${FAN.map(s => face(s, false)).join('')}</div>
+  </div></section>
+
+  <div class="wrap stack">
+    <p class="eyebrow">Choose a spread</p>
+    <h2>Start with the question, not the cards.</h2>
+    <p class="lede">The spread decides what kind of answer you get. One card for a nudge,
+      three for a trajectory, ten when the situation has layers.</p>
+    <div class="tiles">
+      ${spreads.map(s => `
+        <button class="tile" onclick="go('r:${s.slug}')">
+          <h3>${esc(s.name)}</h3>
+          <p>${esc(s.blurb)}</p>
+          <footer>
+            <span class="pips" aria-hidden="true">${Array.from({length:10},(_,i)=>`<i class="${i<s.count?'on':''}"></i>`).join('')}</span>
+            <span>${s.count} card${s.count > 1 ? 's' : ''} →</span>
+          </footer>
+        </button>`).join('')}
+    </div>
+  </div>
+
+  <section class="band"><div class="wrap stack">
+    <p class="eyebrow">What makes a reading useful</p>
+    <h2>Three things this site does differently.</h2>
+    <div class="tiles">
+      <article class="tile" style="cursor:default">
+        <h3>Position before card</h3>
+        <p>The Tower in <em>outcome</em> means something different from The Tower in
+          <em>what is passing</em>. Readings are built position-first, which is how a
+          reader actually works.</p>
+      </article>
+      <article class="tile" style="cursor:default">
+        <h3>The spread as a whole</h3>
+        <p>Every reading ends by looking at the pattern — how many major arcana, which
+          suit dominates, how much is reversed. That synthesis is usually where the
+          answer is.</p>
+      </article>
+      <article class="tile" style="cursor:default">
+        <h3>An honest shuffle</h3>
+        <p>Cards are drawn with your browser&rsquo;s cryptographic random number
+          generator, not a seeded shuffle. It&rsquo;s the one mechanic you&rsquo;re
+          entitled to be suspicious about, so we say plainly how it works.</p>
+      </article>
+    </div>
+  </div></section>`;
+}
+
+function deckView() {
+  const groups = [
+    { key: 'major', label: 'Major Arcana', note: 'The 22 cards of the larger pattern.' },
+    ...Object.entries(DATA.suits).map(([slug, s]) => ({
+      key: slug, label: s.name, note: `${s.element} — ${s.domain}.` })),
+  ];
+  return `<div class="wrap stack">
+    <p class="eyebrow">The deck</p>
+    <h1>All 78 cards</h1>
+    <p class="lede">Each card has upright and reversed meanings across five contexts.
+      Click any card to open it.</p>
+    ${groups.map(g => {
+      const cards = DATA.cards.filter(c => g.key === 'major' ? c.arcana === 'major' : c.suit === g.key);
+      return `<h2 style="margin-top:1.6rem">${esc(g.label)}</h2>
+        <p class="note">${esc(g.note)}</p>
+        <div class="deck">${cards.map(c => `
+          <button onclick="openCard('${c.slug}')">
+            ${face(c.slug, false)}<span class="cap">${esc(c.name)}</span>
+          </button>`).join('')}</div>`;
+    }).join('')}
+  </div>`;
+}
+
+let currentCard = 'the-star';
+
+function cardView() {
+  const c = BY_SLUG.get(currentCard);
+  const i = DATA.cards.findIndex(x => x.slug === c.slug);
+  const near = [DATA.cards[i - 1], DATA.cards[i + 1]].filter(Boolean);
+  return `<div class="wrap">
+    <p class="mono">The deck / ${esc(c.name)}</p>
+    <div class="detail">
+      <aside class="stack">
+        ${face(c.slug, false)}
+        <dl class="facts">
+          <div><dt>Arcana</dt><dd>${c.arcana === 'major' ? 'Major' : 'Minor'}</dd></div>
+          <div><dt>Number</dt><dd>${esc(c.roman)}</dd></div>
+          <div><dt>Element</dt><dd>${esc(c.element)}</dd></div>
+          <div><dt>Astrology</dt><dd>${esc(c.astrology)}</dd></div>
+          <div><dt>Yes / No</dt><dd style="text-transform:capitalize">${esc(c.yesno)}</dd></div>
+          <div><dt>Colour</dt><dd><span class="swatch" style="background:${esc(c.hex)}"></span>${esc(c.colour)}</dd></div>
+          <div><dt>Stone</dt><dd>${esc(c.stone)}</dd></div>
+        </dl>
+      </aside>
+      <div class="stack">
+        <h1>${esc(c.name)}</h1>
+        <ul class="keys">
+          ${c.upKeys.map(k => `<li>${esc(k)}</li>`).join('')}
+          ${c.revKeys.map(k => `<li class="r">${esc(k)} (rev)</li>`).join('')}
+        </ul>
+        <h2 class="label">Upright</h2><p>${esc(c.up)}</p>
+        <h2 class="label">Reversed</h2><p>${esc(c.rev)}</p>
+        ${DATA.contexts.filter(x => x.slug !== 'general' && c.ctx[x.slug]).map(x => `
+          <h2 style="margin-top:1rem">${esc(c.name)} in ${esc(x.label.toLowerCase())}</h2>
+          <p><strong>Upright.</strong> ${esc(c.ctx[x.slug].up)}</p>
+          <p><strong>Reversed.</strong> ${esc(c.ctx[x.slug].rev)}</p>`).join('')}
+        <div class="notice">
+          <span>See ${esc(c.name)} in a real spread. A single card meaning is a definition;
+            a reading is what it means next to the others.</span>
+          <div class="row"><button class="btn solid" onclick="go('r:three-card')">Draw three cards</button></div>
+        </div>
+        <h2>Read next</h2>
+        <div class="deck" style="grid-template-columns:repeat(2,minmax(0,104px))">
+          ${near.map(n => `<button onclick="openCard('${n.slug}')">${face(n.slug,false)}<span class="cap">${esc(n.name)}</span></button>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+const state = {};   /* per-spread question + reversal preference */
+
+function readingView(slug) {
+  const s = DATA.spreads[slug];
+  const st = state[slug] || (state[slug] = { q: '', rev: true, drawn: null });
+  if (!st.drawn) st.drawn = drawCards(s.count, st.rev);
+  const passages = compose(st.drawn, s, st.q);
+
+  return `<div class="wrap stack">
+    <p class="eyebrow">${s.count} card${s.count > 1 ? 's' : ''}</p>
+    <h1>${esc(s.name)}</h1>
+    <p class="lede">${esc(s.blurb)}</p>
+
+    <div class="controls">
+      <label>
+        <span class="eyebrow">Your question (optional — the reading is sharper with one)</span>
+        <input type="text" id="q-${slug}" maxlength="160" value="${esc(st.q)}"
+               placeholder="e.g. Should I stay in this job another year?">
+      </label>
+      <label class="check">
+        <input type="checkbox" id="rev-${slug}" ${st.rev ? 'checked' : ''}> Include reversals
+      </label>
+      <button class="btn solid" onclick="redraw('${slug}')">Shuffle &amp; draw again</button>
+    </div>
+
+    <ol class="spread">
+      ${st.drawn.map((d, i) => {
+        const pos = s.positions[i] || { name: `Card ${i + 1}` };
+        return `<li>
+          <span class="pos">${esc(pos.name)}</span>
+          ${face(d.card.slug, d.reversed)}
+          <button class="cap" style="background:none;border:0;cursor:pointer;color:var(--link);font:inherit;font-size:.8rem"
+                  onclick="openCard('${d.card.slug}')">${esc(d.card.name)}</button>
+          ${d.reversed ? '<span class="tag">Reversed</span>' : ''}
+        </li>`;
+      }).join('')}
+    </ol>
+
+    <div class="reading">
+      <h2>The reading</h2>
+      ${passages.map(p => `<p>${md(p)}</p>`).join('')}
+    </div>
+
+    <h2 style="margin-top:1.4rem">What the positions mean</h2>
+    <dl class="positions">
+      ${s.positions.map(p => `<div><dt>${esc(p.name)}</dt><dd>${esc(p.note)}</dd></div>`).join('')}
+    </dl>
+
+    <div class="notice">
+      <strong>For entertainment and reflection.</strong>
+      <span>A tarot reading is a structured way of looking at a situation you are already
+        in — it is not advice, and it does not predict what will happen. For anything
+        medical, legal or financial, talk to someone qualified.</span>
+    </div>
+  </div>`;
+}
+
+/* ---------------------------------------------------------------------- */
+
+let page = 'home';
+
+function render() {
+  const main = document.getElementById('main');
+  main.innerHTML = page === 'home' ? homeView()
+    : page === 'deck' ? deckView()
+    : page === 'card' ? cardView()
+    : readingView(page.slice(2));
+
+  document.querySelectorAll('#tabs button').forEach(b => {
+    if (b.dataset.id === page) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  });
+  window.scrollTo(0, 0);
+}
+
+function go(id) { page = id; render(); }
+
+function openCard(slug) { currentCard = slug; go('card'); }
+
+function redraw(slug) {
+  const st = state[slug];
+  st.q = document.getElementById('q-' + slug).value.trim();
+  st.rev = document.getElementById('rev-' + slug).checked;
+  st.drawn = drawCards(DATA.spreads[slug].count, st.rev);
+  render();
+}
+
+document.getElementById('tabs').innerHTML = PAGES.map(p =>
+  `<button type="button" data-id="${p.id}" onclick="go('${p.id}')">${esc(p.label)}</button>`).join('');
+
+/* Theme: the room changes, the deck does not. A real card is a light object
+   whatever the light in the room is doing. */
+const themeBtn = document.getElementById('theme');
+function syncTheme() {
+  const dark = document.documentElement.dataset.theme === 'dark'
+    || (!document.documentElement.dataset.theme
+        && matchMedia('(prefers-color-scheme: dark)').matches);
+  themeBtn.textContent = dark ? 'Light' : 'Dark';
+}
+themeBtn.onclick = () => {
+  const dark = document.documentElement.dataset.theme === 'dark'
+    || (!document.documentElement.dataset.theme
+        && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+  syncTheme();
+};
+syncTheme();
+
+render();
+</script>

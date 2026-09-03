@@ -42,8 +42,18 @@ WIDTH = 76
 
 
 def tracked():
+    """The Flask app's own files.
+
+    `git ls-files tarot/` also matches tarot/web/ -- the Next.js rewrite, four
+    megabytes of it including the whole card deck. Embedding that would bloat
+    the installer twenty-fold and unpack a second application into the Flask
+    directory, so it is excluded here rather than left to whoever notices.
+    """
     out = subprocess.check_output(["git", "ls-files", "tarot/"], cwd=ROOT, text=True)
-    names = [n for n in out.split("\n") if n.strip() and n not in BUILD_ONLY]
+    names = [
+        n for n in out.split("\n")
+        if n.strip() and n not in BUILD_ONLY and not n.startswith("tarot/web/")
+    ]
     missing = [n for n in names if not (ROOT / n).is_file()]
     if missing:
         raise SystemExit(f"tracked but not on disk: {missing}")
