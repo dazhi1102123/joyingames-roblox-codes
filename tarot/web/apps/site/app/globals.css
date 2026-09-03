@@ -308,3 +308,52 @@ h2.label {
   font-size: .78rem;
   letter-spacing: .06em;
 }
+
+/* A photographed card is a physical object: give it the keyline and corner
+   the drawn deck has built into its own geometry. */
+.art.photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--card-line);
+  border-radius: 6px;
+  background: var(--card-face);
+}
+.art.photo.reversed img { transform: rotate(180deg); }
+
+/* --- forms, tables, jobs ------------------------------------------------- */
+
+.order-form { display: grid; gap: 1.2rem; max-width: 620px; margin: 2rem 0; }
+.order-form label { display: grid; gap: .4rem; }
+.order-form input, .order-form select, .order-form textarea {
+  width: 100%; padding: .7rem .85rem;
+  font-family: var(--body); font-size: .96rem; line-height: 1.5;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule-hard); border-radius: var(--radius);
+}
+.order-form textarea { resize: vertical; }
+.order-form button { justify-self: start; }
+
+.tile.reader footer { font-family: var(--mono); font-size: .72rem; }
+
+.job {
+  padding: 1.6rem; margin: 1.6rem 0;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+}
+.job header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 1rem; flex-wrap: wrap; margin-bottom: .8rem;
+}
+.job h3 { margin: 0; }
+
+.ledger { width: 100%; border-collapse: collapse; margin: 1.2rem 0 2rem; font-size: .92rem; }
+.ledger th, .ledger td {
+  text-align: left; padding: .6rem .7rem; border-bottom: 1px solid var(--rule);
+}
+.ledger th {
+  font-family: var(--mono); font-size: .66rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 400;
+}
+.ledger td.cap { text-transform: capitalize; }
+.ledger form { margin: 0; }
+.ledger .btn { padding: .35rem .7rem; font-size: .66rem; }

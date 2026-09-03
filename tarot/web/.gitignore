@@ -4,3 +4,8 @@ out/
 *.tsbuildinfo
 .env.local
 next-env.d.ts
+readings.db
+readings.db-shm
+readings.db-wal
+next.log
+apps/site/public/cards/rws/

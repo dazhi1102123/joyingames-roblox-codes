@@ -1,3 +1,10 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# better-sqlite3 and sharp ship native code that must compile at install time.
+# pnpm skips build scripts by default; without these two named here the modules
+# install but fail at runtime.
+onlyBuiltDependencies:
+  - better-sqlite3
+  - sharp

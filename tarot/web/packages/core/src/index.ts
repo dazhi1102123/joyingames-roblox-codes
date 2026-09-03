@@ -1,5 +1,6 @@
 export * from "./types"
 export * from "./data.generated"
 export * from "./art.generated"
+export * from "./art.manifest"
 export * from "./reading"
 export * from "./markdown"
