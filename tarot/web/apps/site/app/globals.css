@@ -79,7 +79,11 @@ p { margin: 0 0 1.1em; max-width: var(--measure); }
 
 main { display: block; }
 
-section, .prose-wide, .card-page, .reading-page {
+/* Page-level bands only. A bare `section` selector here also hit every
+   nested <section> -- a card's per-context blocks, the deck groups, the
+   reading's interpretation, a job on the desk -- giving each of them 4.5rem
+   of page padding and tearing holes through the middle of the page. */
+main > section, main > .prose-wide, main > .card-page, main > .reading-page {
   padding: clamp(2.5rem, 5vw, 4.5rem) clamp(1rem, 4vw, 3rem);
   max-width: 1180px; margin: 0 auto;
 }
