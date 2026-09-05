@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next"
 import { CARDS, CONTEXTS, SPREADS, allDateSlugs } from "@arcana/core"
 import { comboPairs, comboScope } from "@/lib/pages"
+import { QUESTIONS } from "@/lib/questions"
 import { canonical } from "@/lib/site"
 
 /** Next splits this into /sitemap/[id].xml and emits an index automatically
@@ -18,7 +19,14 @@ function allUrls(): MetadataRoute.Sitemap {
     { url: canonical("/spreads"), priority: 0.7, changeFrequency: "monthly" },
     { url: canonical("/learn"), priority: 0.6, changeFrequency: "monthly" },
     { url: canonical("/birth-card"), priority: 0.9, changeFrequency: "monthly" },
+    { url: canonical("/questions"), priority: 0.95, changeFrequency: "monthly" },
   ]
+
+  // The question pages sit at the top of the priority list on purpose: they
+  // are phrased the way people search, which the card pages are not.
+  for (const question of QUESTIONS) {
+    urls.push({ url: canonical(`/questions/${question.slug}`), priority: 0.95 })
+  }
 
   // 366 date pages. "birth card april 3" is a question with one answer, and a
   // page per date answers it instead of making someone operate a form.

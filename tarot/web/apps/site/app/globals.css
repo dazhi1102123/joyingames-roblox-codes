@@ -435,3 +435,30 @@ h2.label {
 .preview-manual code, .preview-group code {
   font-family: var(--mono); font-size: .82em; color: var(--ink-3);
 }
+
+/* --- questions ----------------------------------------------------------- */
+
+.question-list { list-style: none; padding: 0; margin: 1rem 0 0; display: grid; gap: 0; }
+.question-list li {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: 1rem; flex-wrap: wrap;
+  padding: .6rem 0; border-bottom: 1px solid var(--rule);
+}
+.question-list a { font-size: 1rem; text-decoration: none; }
+.question-list a:hover { text-decoration: underline; }
+
+/* The honest paragraph is the one that separates this from the sites that
+   promise to tell you what someone else is thinking. It gets its own weight. */
+.honest {
+  margin: 1.6rem 0 2rem; padding: 1rem 1.2rem;
+  background: var(--surface); border-left: 3px solid var(--ink-3);
+  font-size: .94rem; color: var(--ink-2); max-width: var(--measure);
+}
+.honest strong { color: var(--ink); font-weight: 400; }
+
+.lens {
+  margin: 0 0 2rem; padding: .8rem 1.1rem;
+  border: 1px dashed var(--rule-hard); border-radius: var(--radius);
+  font-size: .92rem; color: var(--ink-2); max-width: var(--measure);
+}
+.lens strong { color: var(--ink); font-weight: 400; }

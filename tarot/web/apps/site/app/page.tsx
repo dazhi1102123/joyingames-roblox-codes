@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { CARDS, SPREADS } from "@arcana/core"
+import { QUESTIONS } from "@/lib/questions"
 import { CardFace } from "./card-face"
 import { SITE } from "@/lib/site"
 
@@ -12,6 +13,18 @@ export const metadata: Metadata = {
 // The fan on the hero. Fixed cards, so the page stays statically rendered --
 // a random hero would force this route dynamic and cost the CDN cache.
 const FAN = ["the-star", "the-tower", "the-sun", "the-moon"]
+
+// One from each area, so the row reads as a range rather than a category.
+const FRONT_SLUGS = [
+  "does-he-still-have-feelings",
+  "should-i-quit-my-job",
+  "why-do-i-keep-repeating-this",
+  "why-am-i-always-broke",
+  "should-i-forgive-them",
+]
+const FRONT_QUESTIONS = FRONT_SLUGS
+  .map((slug) => QUESTIONS.find((q) => q.slug === slug))
+  .filter((q): q is (typeof QUESTIONS)[number] => Boolean(q))
 
 export default function Home() {
   const spreads = Object.values(SPREADS)
@@ -49,6 +62,29 @@ export default function Home() {
               <CardFace slug={slug} />
             </div>
           ))}
+        </div>
+      </section>
+
+      <section>
+        <p className="eyebrow">Start from the question</p>
+        <h2>Most people do not arrive thinking in cards.</h2>
+        <p className="lede">
+          They arrive with a question — should I quit, is there a way back, why does
+          this keep happening. Each of these binds the question to the spread that
+          suits it, and says plainly what the reading cannot tell you.
+        </p>
+        <ul className="question-list">
+          {FRONT_QUESTIONS.map((q) => (
+            <li key={q.slug}>
+              <a href={`/questions/${q.slug}`}>{q.title}</a>
+              <span className="mono">{SPREADS[q.spread].name}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="actions">
+          <a className="btn" href="/questions">
+            All {QUESTIONS.length} questions
+          </a>
         </div>
       </section>
 

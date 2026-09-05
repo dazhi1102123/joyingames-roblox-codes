@@ -40,6 +40,7 @@ import { payoutsOwed, readerEarnings, settleReader } from "./lib/payouts"
 import { CONSENT_TEXT, confirmSubscriber, getSubscriber, subscribe, unsubscribe } from "./lib/subscribers"
 import { channelsAreSeparated } from "./lib/mailer"
 import { comboPairs } from "./lib/pages"
+import { QUESTIONS } from "./lib/questions"
 
 const PORT = Number(process.env.VERIFY_PORT ?? 3111)
 const BASE = `http://127.0.0.1:${PORT}`
@@ -297,6 +298,8 @@ async function verifySite() {
     ["/cards/the-star/love", "a card in context"],
     ["/cards/context/love", "a context hub"],
     ["/cards/context/yes-no", "the yes-or-no hub"],
+    ["/questions", "the question hub"],
+    [`/questions/${QUESTIONS[0].slug}`, "a question page"],
     ["/combinations/the-tower/the-star", "a combination"],
     ["/birth-card", "birth card tool"],
     ["/birth-card/february-29", "a leap-day birth page"],
@@ -350,6 +353,7 @@ async function verifySite() {
     ["/cards/the-star", "a card"],
     ["/cards/the-star/love", "a card in context"],
     ["/combinations/the-tower/the-star", "a combination"],
+    [`/questions/${QUESTIONS[0].slug}`, "a question page"],
   ] as Array<[string, string]>) {
     const { body } = await get(path)
     const text = body
@@ -372,6 +376,17 @@ async function verifySite() {
   const { body: card } = await get("/cards/the-star")
   check("card pages carry structured data", card.includes('application/ld+json'))
 
+  const missingHonest: string[] = []
+  for (const question of QUESTIONS) {
+    const { body } = await get(`/questions/${question.slug}`)
+    if (!body.includes("What this cannot do")) missingHonest.push(question.slug)
+  }
+  check("every question page says what it cannot do", missingHonest.length === 0,
+    missingHonest.join(", "))
+
+  const { body: faq } = await get(`/questions/${QUESTIONS[0].slug}`)
+  check("question pages carry FAQ structured data", faq.includes('"FAQPage"'))
+
   const { body: robots } = await get("/robots.txt")
   check("robots points at a sitemap that exists", robots.includes("/sitemap.xml"))
 
@@ -381,9 +396,18 @@ async function verifySite() {
 
   const { body: urls } = await get("/sitemap/0.xml")
   const locs = [...urls.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
+  // Counted by page type rather than read back from the sitemap, so a whole
+  // type silently dropping out of it still fails here.
   const expected =
-    9 + Object.keys(SPREADS).length + CARDS.length + 312 +
-    (CONTEXTS.length - 1) + comboPairs().length + allDateSlugs().length + 4
+    10 +                                  // the standalone pages
+    Object.keys(SPREADS).length +
+    CARDS.length +
+    312 +                                 // per card, per context
+    (CONTEXTS.length - 1) +               // context hubs
+    QUESTIONS.length + 1 +                // question pages and their hub
+    comboPairs().length +
+    allDateSlugs().length +
+    4                                     // legal
   check("the sitemap holds every generated page", Math.abs(locs.length - expected) <= 12,
     `${locs.length} URLs`)
 

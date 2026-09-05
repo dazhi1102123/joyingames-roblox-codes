@@ -8,6 +8,7 @@ import {
   encodeReading,
 } from "@arcana/core"
 import { comboPairs, comboScope } from "@/lib/pages"
+import { QUESTIONS } from "@/lib/questions"
 import { listReaders } from "@/lib/readers"
 import { db } from "@/lib/db"
 
@@ -78,7 +79,8 @@ export default function Preview() {
     0,
   )
   const total =
-    9 +                              // main, report, daily, learn, birth-card, my-deck, spreads, readers, preview
+    10 +                             // main, report, daily, learn, birth-card, my-deck, spreads, readers, questions, preview
+    QUESTIONS.length +
     Object.keys(SPREADS).length +
     CARDS.length +
     contextPages +
@@ -190,6 +192,18 @@ export default function Preview() {
           </li>
         </ol>
       </section>
+
+      <Group
+        title="Questions people actually type"
+        note={`${QUESTIONS.length} pages, each binding one question to the spread that suits it. Phrased the way it is searched, not the way a deck is organised.`}
+        links={[
+          { href: "/questions", label: "All questions" },
+          ...QUESTIONS.slice(0, 5).map((q) => ({
+            href: `/questions/${q.slug}`,
+            label: q.title,
+          })),
+        ]}
+      />
 
       <Group
         title="By question"

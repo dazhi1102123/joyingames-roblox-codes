@@ -24,6 +24,7 @@ export const metadata: Metadata = {
 
 const NAV = [
   { href: "/", label: "Reading" },
+  { href: "/questions", label: "By Question" },
   { href: "/cards", label: "The Deck" },
   { href: "/spreads", label: "Spreads" },
   { href: "/report", label: "Report" },
@@ -83,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
             <div>
               <h4>By question</h4>
+              <a href="/questions">All questions</a>
               {CONTEXTS.filter((c) => c.slug !== "general").map((c) => (
                 <a key={c.slug} href={`/cards/context/${c.slug}`}>
                   {c.label}
