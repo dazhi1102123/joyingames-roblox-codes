@@ -428,3 +428,10 @@ h2.label {
 .history .line { display: flex; flex-wrap: wrap; gap: .5rem; font-size: .9rem; }
 .mono { font-family: var(--mono); font-size: .68rem; letter-spacing: .06em; color: var(--ink-3); }
 .deck-grid em.mono { font-style: normal; }
+
+.preview-manual { margin: 1rem 0 0; padding-left: 1.3rem; display: grid; gap: .7rem; }
+.preview-manual li { font-size: .93rem; color: var(--ink-2); max-width: 70ch; }
+.preview-manual strong { color: var(--ink); font-weight: 400; }
+.preview-manual code, .preview-group code {
+  font-family: var(--mono); font-size: .82em; color: var(--ink-3);
+}

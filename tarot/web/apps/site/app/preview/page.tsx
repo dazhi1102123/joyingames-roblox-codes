@@ -137,6 +137,60 @@ export default function Preview() {
         ]}
       />
 
+      <section className="preview-group">
+        <h2>Check by hand</h2>
+        <p className="note">
+          <code>pnpm verify</code> covers 92 machine-checkable things — the corpus,
+          the shuffle&rsquo;s fairness, the share codec, the order state machine, the
+          payout arithmetic, consent evidence, every route, every link here, and the
+          SEO essentials. These are the ones only a person can judge.
+        </p>
+        <ol className="preview-manual">
+          <li>
+            <strong>Draw the Celtic Cross twice.</strong> Ten different cards each
+            time, and the closing paragraph should describe the spread as a whole —
+            how many major arcana, which suit dominates — not repeat the cards.
+          </li>
+          <li>
+            <strong>Read a reversed card&rsquo;s paragraph.</strong> It should say the
+            energy is blocked, internalised or mistimed. If it reads as the plain
+            opposite of the upright meaning, the writing has stopped saying anything.
+          </li>
+          <li>
+            <strong>Open the same card in two contexts.</strong> The Tower in love and
+            The Tower in money should not be the same sentence with a noun swapped.
+          </li>
+          <li>
+            <strong>Order a reading.</strong> Fill the form on a reader&rsquo;s page.
+            You land on a private link that says awaiting payment, and the order must
+            NOT appear on <code>/desk</code> yet. Mark it paid in{" "}
+            <code>/admin</code>, and only then does the reader see it.
+          </li>
+          <li>
+            <strong>Deliver it.</strong> Claim it on the desk, write anything, deliver.
+            It appears on the customer&rsquo;s link, and the fee moves to{" "}
+            <code>/admin/payouts</code>.
+          </li>
+          <li>
+            <strong>Subscribe on the report page… </strong> there is deliberately no
+            email capture yet. It stays off until the Impressum fields are filled and
+            there is somewhere lawful to put an address.
+          </li>
+          <li>
+            <strong>Switch the theme.</strong> The room changes; the cards must not.
+            A real card is a light object whatever the room is doing.
+          </li>
+          <li>
+            <strong>Open <code>/legal/impressum</code>.</strong> Every red MISSING is a
+            field German law requires before launch.
+          </li>
+          <li>
+            <strong>Narrow the window to phone width.</strong> Nothing should scroll
+            sideways and no card should cover the headline.
+          </li>
+        </ol>
+      </section>
+
       <Group
         title="By question"
         note="The context hubs the footer links to. Yes-or-no has its own shape — cards carry a lean, not a paragraph."
