@@ -27,10 +27,12 @@ import {
   SUITS,
   allDateSlugs,
   cardBySlug,
+  FOLLOW_UP_QUESTIONS,
   composeReading,
   decodeReading,
   drawCards,
   encodeReading,
+  followUp,
   hydrate,
 } from "@arcana/core"
 
@@ -38,7 +40,7 @@ import { addReader, listReaders } from "./lib/readers"
 import { createOrder, setPayment, setStatus } from "./lib/orders"
 import { payoutsOwed, readerEarnings, settleReader } from "./lib/payouts"
 import { CONSENT_TEXT, confirmSubscriber, getSubscriber, subscribe, unsubscribe } from "./lib/subscribers"
-import { channelsAreSeparated } from "./lib/mailer"
+import { POSTAL_ADDRESS, channelsAreSeparated, sendMarketing } from "./lib/mailer"
 import { comboPairs } from "./lib/pages"
 import { QUESTIONS } from "./lib/questions"
 
@@ -177,6 +179,22 @@ function verifyReading() {
   check("a question is echoed back", withQuestion.passages[0].includes("Should I move?"))
 }
 
+function verifyFollowUps() {
+  section("Follow-ups")
+
+  const spread = SPREADS["celtic-cross"]
+  const reading = composeReading(hydrate(drawCards(spread.count, true), spread), spread, "")
+
+  const answers = FOLLOW_UP_QUESTIONS.map((q) => followUp(reading, q.key))
+  check("every follow-up lens answers", answers.every((a) => a && a.answer.length > 120),
+    `${answers.filter(Boolean).length}/${FOLLOW_UP_QUESTIONS.length}`)
+  check("the answers differ from one another",
+    new Set(answers.map((a) => a?.answer)).size === answers.length)
+  check("each answer names a real card from this spread",
+    answers.every((a) => reading.cards.some((c) => a!.answer.includes(c.card.name))))
+  check("an unknown lens returns null rather than throwing", followUp(reading, "nope") === null)
+}
+
 function verifyOrders() {
   section("Orders and money")
 
@@ -220,7 +238,7 @@ function verifyOrders() {
     `owed ${before.owed}→${after.owed}, paid ${before.paid}→${after.paid}`)
 }
 
-function verifySubscribers() {
+async function verifySubscribers() {
   section("Mailing list")
 
   const email = `verify-${Date.now()}@example.test`
@@ -245,6 +263,24 @@ function verifySubscribers() {
   check("marketing is blocked unless the two sending domains differ",
     channelsAreSeparated() === true,
     channelsAreSeparated() ? "" : "set MAIL_TX_FROM and MAIL_MK_FROM to different domains")
+
+  // Every commercial message needs the sender's real postal address, and an
+  // opted-in recipient does not waive it. Refusing to send is the correct
+  // behaviour when it is unset.
+  let refusedWithoutAddress = false
+  try {
+    await sendMarketing({
+      to: "verify@example.test",
+      subject: "verify",
+      text: "verify",
+      listUnsubscribe: "<https://example.test/u>",
+    })
+  } catch (error) {
+    refusedWithoutAddress = String(error).includes("MAIL_POSTAL_ADDRESS")
+  }
+  check("marketing without a postal address is refused, not sent",
+    POSTAL_ADDRESS.trim() ? true : refusedWithoutAddress,
+    POSTAL_ADDRESS.trim() ? "MAIL_POSTAL_ADDRESS is set" : "")
 }
 
 // ---------------------------------------------------------------------------
@@ -311,7 +347,7 @@ async function verifySite() {
     ["/readers", "readers"],
     ["/desk", "reader desk"],
     ["/admin", "operator console"],
-    ["/legal/impressum", "impressum"],
+    ["/legal/notice", "legal notice"],
     ["/healthz", "health"],
     ["/robots.txt", "robots"],
     ["/sitemap.xml", "sitemap index"],
@@ -432,8 +468,9 @@ async function main() {
   verifyDraw()
   verifyCodec()
   verifyReading()
+  verifyFollowUps()
   verifyOrders()
-  verifySubscribers()
+  await verifySubscribers()
 
   const server = await startServer()
   if (server) {

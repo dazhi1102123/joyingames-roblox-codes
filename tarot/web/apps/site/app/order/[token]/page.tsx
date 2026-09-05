@@ -62,10 +62,18 @@ export default async function OrderPage({ params }: Params) {
       )}
 
       <h2>Your cards</h2>
+      <aside className="provenance">
+        <strong>Drawn {new Date(order.created_at).toLocaleString()}</strong>, when you
+        placed the order — before any reader saw it. The order below is the order they
+        came out of the deck, and it has not changed since. Cards are drawn with a
+        cryptographic random number generator, not a seeded shuffle.
+      </aside>
       <ol className="spread-grid" data-count={order.drawn.length}>
         {order.drawn.map((entry, i) => (
           <li key={`${entry.slug}-${i}`}>
-            <span className="pos">{spread?.positions[i]?.name ?? `Card ${i + 1}`}</span>
+            <span className="pos">
+              <b>{i + 1}</b> {spread?.positions[i]?.name ?? `Card ${i + 1}`}
+            </span>
             <CardFace slug={entry.slug} reversed={entry.reversed} />
             <a className="cardname" href={`/cards/${entry.slug}`}>
               {entry.slug.replace(/-/g, " ")}

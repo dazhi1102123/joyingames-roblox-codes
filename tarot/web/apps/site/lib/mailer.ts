@@ -21,6 +21,18 @@ export interface Message {
   listUnsubscribePost?: boolean
 }
 
+/** The sender's real postal address.
+ *
+ * CAN-SPAM requires a valid physical address in every commercial message to a
+ * US recipient, and it is one of the few requirements with no consent-based
+ * exception -- an opted-in subscriber does not waive it. The list is
+ * international, so this applies to the whole send rather than to a segment.
+ *
+ * Left unset it blocks marketing rather than sending without it: a message
+ * that cannot lawfully be sent is not improved by being sent anyway.
+ */
+export const POSTAL_ADDRESS = process.env.MAIL_POSTAL_ADDRESS ?? ""
+
 interface Channel {
   from: string
   replyTo?: string
@@ -138,7 +150,22 @@ export async function sendMarketing(message: Message): Promise<void> {
   if (!message.listUnsubscribe) {
     throw new MailError("a marketing message needs a List-Unsubscribe header")
   }
-  await activeProvider().send(MK, message)
+  if (!POSTAL_ADDRESS.trim()) {
+    throw new MailError(
+      "MAIL_POSTAL_ADDRESS is not set. Every commercial message needs the " +
+        "sender's real postal address in the body (CAN-SPAM §7704(a)(5)); an " +
+        "opted-in recipient does not waive it.",
+    )
+  }
+
+  // Appended here rather than left to each template, so no future template can
+  // forget it.
+  const footer = `\n\n—\n${POSTAL_ADDRESS}\nYou are receiving this because you confirmed a subscription. Unsubscribe: ${message.listUnsubscribe.replace(/^<|>$/g, "")}\n`
+
+  await activeProvider().send(MK, {
+    ...message,
+    text: message.text.trimEnd() + footer,
+  })
 }
 
 export const channels = { tx: TX, mk: MK }

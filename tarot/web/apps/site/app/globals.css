@@ -462,3 +462,31 @@ h2.label {
   font-size: .92rem; color: var(--ink-2); max-width: var(--measure);
 }
 .lens strong { color: var(--ink); font-weight: 400; }
+
+/* The shuffle is the one mechanic a visitor is entitled to be suspicious
+   about. Showing when the cards were drawn turns that from a claim on the
+   home page into something checkable on their own order. */
+.provenance {
+  margin: 0 0 1.4rem; padding: .8rem 1.1rem;
+  background: var(--surface); border: 1px dashed var(--rule-hard);
+  border-radius: var(--radius);
+  font-size: .9rem; color: var(--ink-2); max-width: var(--measure);
+}
+.provenance strong { color: var(--ink); font-weight: 400; }
+.spread-grid .pos b {
+  display: inline-block; min-width: 1.1em;
+  color: var(--accent); font-weight: 400;
+}
+
+/* --- follow-ups ---------------------------------------------------------- */
+
+.followups { margin-top: 2.6rem; padding-top: 1.6rem; border-top: 1px solid var(--rule); }
+.followup {
+  margin: 1.2rem 0; padding: 1rem 1.2rem;
+  background: var(--surface); border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+}
+.followup h3 { font-family: var(--disp); font-size: 1.05rem; margin-bottom: .5rem; }
+.followup p { margin: 0; }
+.followups .actions { margin-top: .8rem; }
+.followups .btn { font-family: var(--body); font-size: .9rem; letter-spacing: 0; text-transform: none; }

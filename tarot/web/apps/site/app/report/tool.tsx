@@ -20,8 +20,8 @@ import { CardFace } from "../card-face"
  * correspondence brief are all computed locally, which is a stronger privacy
  * position than a promise not to store it -- there is nothing to store. The
  * email capture that belongs at the end of this funnel is deliberately absent
- * until the Impressum fields are filled and there is somewhere lawful to put
- * an address.
+ * until the operator and representative fields on /legal/notice are filled
+ * and there is somewhere lawful to put an address.
  */
 
 const FOCUS = [

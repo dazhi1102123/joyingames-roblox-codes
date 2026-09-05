@@ -96,7 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a href="/legal/disclaimer">Disclaimer</a>
               <a href="/legal/privacy">Privacy</a>
               <a href="/legal/terms">Terms</a>
-              <a href="/legal/impressum">Impressum</a>
+              <a href="/legal/notice">Legal notice</a>
             </div>
           </div>
           <p className="fineprint">

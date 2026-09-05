@@ -10,6 +10,7 @@ import {
   type Spread,
 } from "@arcana/core"
 import { CardFace } from "../../card-face"
+import { FollowUps } from "../../follow-ups"
 
 /** The draw happens in the browser, on purpose.
  *
@@ -109,6 +110,8 @@ export function ReadingBoard({ spread }: { spread: Spread }) {
               <p key={i} dangerouslySetInnerHTML={{ __html: renderMarkdown(p) }} />
             ))}
           </section>
+
+          <FollowUps reading={reading} />
         </>
       )}
     </div>

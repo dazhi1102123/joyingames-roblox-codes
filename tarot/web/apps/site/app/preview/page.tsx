@@ -175,7 +175,7 @@ export default function Preview() {
           </li>
           <li>
             <strong>Subscribe on the report page… </strong> there is deliberately no
-            email capture yet. It stays off until the Impressum fields are filled and
+            email capture yet. It stays off until the operator fields are filled and
             there is somewhere lawful to put an address.
           </li>
           <li>
@@ -183,8 +183,9 @@ export default function Preview() {
             A real card is a light object whatever the room is doing.
           </li>
           <li>
-            <strong>Open <code>/legal/impressum</code>.</strong> Every red MISSING is a
-            field German law requires before launch.
+            <strong>Open <code>/legal/notice</code>.</strong> Every red MISSING is a
+            field required before selling into the EU — including the Art. 27
+            representative, which a non-EU operator cannot skip.
           </li>
           <li>
             <strong>Narrow the window to phone width.</strong> Nothing should scroll
@@ -337,9 +338,9 @@ export default function Preview() {
 
       <Group
         title="Legal"
-        note="Red MISSING markers on the Impressum and Privacy pages are the operator fields still owed."
+        note="Red MISSING markers on the legal notice and privacy pages are the fields still owed — including the EU representative a non-EU operator must name."
         links={[
-          { href: "/legal/impressum", label: "Impressum", hint: "§5 DDG" },
+          { href: "/legal/notice", label: "Legal notice", hint: "operator + GDPR Art. 27 representative" },
           { href: "/legal/privacy", label: "Privacy" },
           { href: "/legal/terms", label: "Terms of use" },
           { href: "/legal/disclaimer", label: "Disclaimer" },

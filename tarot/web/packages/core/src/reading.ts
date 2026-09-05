@@ -402,3 +402,114 @@ export function parseDateSlug(slug: string): { month: number; day: number } | nu
 }
 
 export const monthName = (month: number) => MONTHS[month - 1][1]
+
+// --------------------------------------------------------------------------
+// Follow-up questions
+//
+// The second question is usually the real one. The first is what someone felt
+// able to type.
+//
+// A follow-up re-reads the cards already on the table through a different
+// lens rather than drawing again -- drawing again would be a different
+// reading, and answering "what am I avoiding" with fresh cards answers nothing.
+// Each lens is derived from the actual spread, so it says something the first
+// pass did not.
+// --------------------------------------------------------------------------
+
+export interface FollowUp {
+  key: string
+  question: string
+  answer: string
+}
+
+/** The card carrying the most weight: the first major arcana if the spread has
+ *  one, otherwise the closing position, which is where a linear spread lands. */
+function anchorOf(cards: DrawnCard[]): DrawnCard {
+  return cards.find((c) => c.card.arcana === "major") ?? cards[cards.length - 1]
+}
+
+function askDo(cards: DrawnCard[], spread: Spread): string {
+  // The middle of a spread is where the lever usually sits: past and outcome
+  // are description, the middle is the part still open.
+  const at = Math.floor((cards.length - 1) / 2)
+  const entry = cards[at]
+  const keys = entry.reversed ? entry.card.rev_keys : entry.card.up_keys
+  return (
+    `**${entry.position.name} — ${entry.card.name}${entry.reversed ? ", reversed" : ""}.** ` +
+    `This is the position with something still open in it. ${entry.position.note} ` +
+    `Read as an instruction rather than a description, it points at ${keys[0]}` +
+    (keys[1] ? ` and ${keys[1]}` : "") +
+    `. That is the smallest real move available, not the largest.`
+  )
+}
+
+function askAvoiding(cards: DrawnCard[]): string {
+  const reversed = cards.filter((c) => c.reversed)
+  if (reversed.length) {
+    const names = reversed.map((c) => `${c.card.name} in ${c.position.name.toLowerCase()}`)
+    const first = reversed[0]
+    return (
+      `**What is turned away.** ${names.join(", ")}. A reversal is the upright ` +
+      `meaning blocked, internalised or mistimed rather than absent — so the ` +
+      `energy is present and going somewhere else. ${first.card.name} reversed ` +
+      `reads as ${first.card.rev_keys.slice(0, 2).join(" or ")}, and that is the ` +
+      `part of this you already know and have not said out loud.`
+    )
+  }
+  const anchor = anchorOf(cards)
+  return (
+    `**Nothing is reversed.** There is no card here describing something ` +
+    `blocked, which is unusual and worth noticing: what this spread describes ` +
+    `is moving openly. If something still feels avoided, it is not in the ` +
+    `cards — it is in the question you chose to ask. ${anchor.card.name} in ` +
+    `${anchor.position.name.toLowerCase()} is the closest thing to a hard edge here.`
+  )
+}
+
+function askNothing(cards: DrawnCard[], spread: Spread): string {
+  const last = cards[cards.length - 1]
+  const keys = last.reversed ? last.card.rev_keys : last.card.up_keys
+  return (
+    `**${last.position.name} — ${last.card.name}${last.reversed ? ", reversed" : ""}.** ` +
+    `The closing position is not a prediction; it is where the present course ` +
+    `arrives if nothing changes. On these terms that is ${keys.slice(0, 2).join(", ")}. ` +
+    `Whether that is acceptable is the actual decision — the spread cannot make ` +
+    `it and does not know your circumstances.`
+  )
+}
+
+function askWhichCard(cards: DrawnCard[]): string {
+  const anchor = anchorOf(cards)
+  const majors = cards.filter((c) => c.card.arcana === "major")
+  const why =
+    anchor.card.arcana === "major"
+      ? majors.length > 1
+        ? `It is the first of ${majors.length} major arcana here, and majors describe structure rather than mood.`
+        : "It is the only major arcana in the spread, which makes it the theme the rest is arranged around."
+      : "No major arcana came up, so the weight falls on the closing position rather than on a theme."
+  return (
+    `**${anchor.card.name}, in ${anchor.position.name.toLowerCase()}.** ${why} ` +
+    `${anchor.reversed ? anchor.card.rev : anchor.card.up} If you take one thing ` +
+    `from this reading, take this card in this position.`
+  )
+}
+
+const LENSES: Array<{ key: string; question: string; answer: (c: DrawnCard[], s: Spread) => string }> = [
+  { key: "do", question: "What is this asking me to do?", answer: askDo },
+  { key: "avoiding", question: "What am I avoiding?", answer: (c) => askAvoiding(c) },
+  { key: "nothing", question: "What if I change nothing?", answer: askNothing },
+  { key: "which", question: "Which card matters most here?", answer: (c) => askWhichCard(c) },
+]
+
+export const FOLLOW_UP_QUESTIONS = LENSES.map((l) => ({ key: l.key, question: l.question }))
+
+/** Answer one follow-up against a reading already on the table. */
+export function followUp(reading: Reading, key: string): FollowUp | null {
+  const lens = LENSES.find((l) => l.key === key)
+  if (!lens) return null
+  return {
+    key: lens.key,
+    question: lens.question,
+    answer: lens.answer(reading.cards, reading.spread),
+  }
+}

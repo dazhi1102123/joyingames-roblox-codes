@@ -10,6 +10,7 @@ import {
   type Spread,
 } from "@arcana/core"
 import { CardFace } from "../../card-face"
+import { FollowUps } from "../../follow-ups"
 
 const HISTORY_KEY = "arcana:history"
 const HISTORY_LIMIT = 200
@@ -104,6 +105,8 @@ export function QuestionReading({ spread, lens }: { spread: Spread; lens: string
               <p key={i} dangerouslySetInnerHTML={{ __html: renderMarkdown(p) }} />
             ))}
           </section>
+
+          <FollowUps reading={reading} />
         </>
       )}
     </div>

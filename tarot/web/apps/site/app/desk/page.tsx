@@ -82,6 +82,10 @@ export default async function Desk() {
                 </span>
               </header>
 
+              <p className="mono">
+                Drawn {new Date(order.created_at).toLocaleString()} · the customer sees
+                this timestamp and this card order
+              </p>
               <p>{order.situation}</p>
               {order.tried && <p className="note">Already tried: {order.tried}</p>}
 

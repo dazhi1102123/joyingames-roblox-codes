@@ -2,18 +2,34 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { SITE, canonical } from "@/lib/site"
 
-/** Operator identity. German law (§5 DDG) requires an Impressum that is
- *  reachable in one click and names a real address and registration -- the
- *  Flask build had no Impressum route at all, which is a live compliance gap.
- *  MISSING markers are rendered visibly on purpose so the gap cannot ship
- *  quietly. Fill them from the env before going live. */
+/** Who is behind the site.
+ *
+ * The operator is established outside the EU and sells to consumers in it,
+ * which changes what is required. There is no §5 DDG Impressum obligation --
+ * that binds providers established in Germany. What does apply is the GDPR,
+ * extraterritorially, because the site offers services to people in the Union
+ * (Art. 3(2)(a)); and with it Art. 27, which requires a representative
+ * established in the EU, named to data subjects under Art. 13(1)(a).
+ *
+ * So the page below is a legal notice rather than an Impressum, and the
+ * representative is a required field, not a nicety.
+ *
+ * MISSING markers render visibly so the gap cannot ship quietly. This is a
+ * reading of the rules, not legal advice -- confirm the set with counsel for
+ * the markets actually being sold into.
+ */
 const OPERATOR = {
   legalName: process.env.OPERATOR_LEGAL_NAME ?? "",
   address: process.env.OPERATOR_ADDRESS ?? "",
   country: process.env.OPERATOR_COUNTRY ?? "",
   regNumber: process.env.OPERATOR_REG_NUMBER ?? "",
-  vat: process.env.OPERATOR_VAT ?? "",
   email: process.env.OPERATOR_EMAIL ?? "",
+  /** GDPR Art. 27. Required once EU consumers are targeted. */
+  euRepresentative: process.env.OPERATOR_EU_REP ?? "",
+  /** UK GDPR Art. 27, if the UK is a market. */
+  ukRepresentative: process.env.OPERATOR_UK_REP ?? "",
+  /** CAN-SPAM: the address that goes in every marketing email. */
+  postal: process.env.MAIL_POSTAL_ADDRESS ?? "",
 }
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -26,32 +42,38 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 const PAGES: Record<string, { title: string; body: React.ReactNode }> = {
-  impressum: {
-    title: "Impressum",
+  notice: {
+    title: "Legal notice",
     body: (
       <>
         <p>
-          Information required under §5 DDG (formerly §5 TMG) and §18 MStV.
+          Who operates this site, and who to contact about it. {SITE.name} is
+          operated from outside the European Union and offers its services to
+          people in it, so the GDPR applies to us regardless of where we are —
+          including the requirement to name a representative inside the Union.
         </p>
         <dl className="facts">
           <Field label="Operator" value={OPERATOR.legalName} />
           <Field label="Address" value={OPERATOR.address} />
           <Field label="Country" value={OPERATOR.country} />
-          <Field label="Register number" value={OPERATOR.regNumber} />
-          <Field label="VAT ID (§27a UStG)" value={OPERATOR.vat} />
+          <Field label="Company registration" value={OPERATOR.regNumber} />
           <Field label="Contact" value={OPERATOR.email} />
+          <Field label="EU representative (GDPR Art. 27)" value={OPERATOR.euRepresentative} />
+          <Field label="UK representative (UK GDPR Art. 27)" value={OPERATOR.ukRepresentative} />
+          <Field label="Postal address used in email" value={OPERATOR.postal} />
         </dl>
         <p>
-          Responsible for editorial content under §18(2) MStV: the operator named
-          above, at the address given.
+          Written in English. Where a translation of this page exists and differs,
+          this version governs.
         </p>
-        <h2>Online dispute resolution</h2>
+        <h2>Consumer disputes</h2>
         <p>
-          The European Commission provides a platform for online dispute
-          resolution at{" "}
+          Contact us first at the address above — most things are resolved that
+          way. Consumers in the EU can also use the European Commission&rsquo;s
+          online dispute resolution platform at{" "}
           <a href="https://ec.europa.eu/consumers/odr/">ec.europa.eu/consumers/odr</a>.
-          We are neither obliged nor willing to participate in dispute resolution
-          proceedings before a consumer arbitration board.
+          We are not obliged to participate in proceedings before a consumer
+          arbitration board and do not currently do so.
         </p>
       </>
     ),
@@ -95,8 +117,10 @@ const PAGES: Record<string, { title: string; body: React.ReactNode }> = {
           never leaves your device. If you subscribe to the daily card, we store
           your email address together with the evidence of your consent: the
           timestamp, the IP address the confirmation came from, and a snapshot of
-          the exact wording you agreed to. That record exists because German law
-          (§7 UWG) puts the burden of proving consent on us.
+          the exact wording you agreed to. That record exists because the GDPR
+          (Art. 7(1)) puts the burden of demonstrating consent on us, and because
+          the ePrivacy Directive requires prior consent before marketing email
+          reaches anyone in the EU. Double opt-in is how we can show it.
         </p>
         <h2>Unsubscribing</h2>
         <p>
@@ -105,11 +129,26 @@ const PAGES: Record<string, { title: string; body: React.ReactNode }> = {
           consent record is retained only as long as needed to demonstrate the
           subscription was lawful, then deleted.
         </p>
-        <h2>Controller</h2>
+        <h2>Where your data goes</h2>
+        <p>
+          We operate from outside the European Union, so an address you give us is
+          transferred out of it. We rely on your consent for that transfer under
+          Art. 49(1)(a) GDPR, which is why the subscription is opt-in and why
+          withdrawing it removes the address rather than flagging it.
+        </p>
+        <h2>Your rights</h2>
+        <p>
+          You can ask for a copy of what we hold, ask us to correct it, or ask us
+          to delete it, at the contact address below. An erasure request deletes
+          the row — we do not keep it with a marker on it. You can also complain to
+          a supervisory authority in your country.
+        </p>
+        <h2>Controller and representative</h2>
         <dl className="facts">
           <Field label="Controller" value={OPERATOR.legalName} />
           <Field label="Address" value={OPERATOR.address} />
           <Field label="Contact" value={OPERATOR.email} />
+          <Field label="EU representative (Art. 27)" value={OPERATOR.euRepresentative} />
         </dl>
       </>
     ),
