@@ -202,7 +202,13 @@ p { margin: 0; max-width: 65ch; }
   background: var(--surface); color: var(--ink);
   border: 1px solid var(--rule-hard); border-radius: var(--radius);
 }
-.controls label.check {
+.controls labelselect {
+  padding: .5rem .7rem; font-family: var(--body); font-size: .92rem;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule-hard); border-radius: var(--radius);
+}
+
+.check {
   display: flex; align-items: center; gap: .45rem; width: auto;
   font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
   text-transform: uppercase; color: var(--ink-2);
@@ -226,6 +232,15 @@ p { margin: 0; max-width: 65ch; }
   border: 1px solid var(--accent); border-radius: var(--radius);
   padding: .05rem .35rem;
 }
+/* The pair sits with the prose, not centred in the page — the text beside it
+   is left-aligned and a floating pair reads as a different column. */
+.pair { list-style: none; padding: 0; margin: 0; display: flex; gap: 1.4rem; flex-wrap: wrap; }
+.pair li { width: 150px; display: grid; gap: .4rem; text-align: center; }
+.pair button {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--link); font: inherit; font-size: .82rem;
+}
+
 .reading { border-top: 2px solid var(--ink); padding-top: 1.4rem; display: grid; gap: 1rem; }
 
 .positions { display: grid; gap: 0; margin: 0; }
@@ -390,6 +405,8 @@ const PAGES = [
   { id: 'home',  label: 'Reading' },
   { id: 'deck',  label: 'The Deck' },
   { id: 'card',  label: 'A Card' },
+  { id: 'ctx',   label: 'By Question' },
+  { id: 'combo', label: 'Combinations' },
   ...Object.values(DATA.spreads).map(s => ({ id: 'r:' + s.slug, label: s.name })),
 ];
 
@@ -484,6 +501,111 @@ function deckView() {
 }
 
 let currentCard = 'the-star';
+let currentCtx = 'love';
+let comboA = 'the-tower', comboB = 'the-star';
+
+/** A card read against one question.
+ *
+ * 312 of these exist on the real site. They are what it is found by: "what
+ * does The Moon mean" and "what does The Moon mean about my relationship" are
+ * different searches, and one page answering both answers neither. */
+function ctxView() {
+  const c = BY_SLUG.get(currentCard);
+  const label = (DATA.contexts.find(x => x.slug === currentCtx) || {}).label || '';
+  const reading = c.ctx[currentCtx];
+  const others = DATA.contexts.filter(x => x.slug !== 'general' && c.ctx[x.slug]);
+
+  if (!reading) { currentCtx = 'love'; return ctxView(); }
+
+  return `<div class="wrap stack">
+    <p class="mono">The deck / ${esc(c.name)} / ${esc(label)}</p>
+    <p class="eyebrow">${esc(label)}</p>
+    <h1>${esc(c.name)} in ${esc(label.toLowerCase())}</h1>
+
+    <div class="detail">
+      <aside class="stack">
+        ${face(c.slug, false)}
+        <div class="row">
+          ${others.map(x => `<button class="btn${x.slug===currentCtx?' solid':''}"
+             onclick="openCtx('${c.slug}','${x.slug}')">${esc(x.label)}</button>`).join('')}
+        </div>
+      </aside>
+      <div class="stack">
+        <h2 class="label">Upright</h2><p>${esc(reading.up)}</p>
+        <h2 class="label">Reversed</h2><p>${esc(reading.rev)}</p>
+        <h2>Why it reads that way here</h2>
+        <p>The general meaning of ${esc(c.name)} is ${esc(c.upKeys.slice(0,3).join(', '))}.
+          Read against ${esc(label.toLowerCase())}, that becomes specific. A card's
+          meaning is not a fixed sentence — it is the same shape applied to a
+          different question.</p>
+        <div class="notice">
+          <span>Try another card in this context.</span>
+          <div class="row">
+            ${['the-moon','the-tower','death','the-sun'].filter(s=>s!==c.slug).slice(0,3)
+              .map(s => `<button class="btn" onclick="openCtx('${s}','${currentCtx}')">${esc(BY_SLUG.get(s).name)}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/** Two cards together. 6,084 ordered pairs exist; the site publishes the
+ *  major-arcana subset first, because six thousand thin pages at once is how a
+ *  new domain loses its crawl budget. */
+function comboView() {
+  const a = BY_SLUG.get(comboA), b = BY_SLUG.get(comboB);
+  const majors = DATA.cards.filter(c => c.arcana === 'major');
+
+  let shared;
+  if (a.element === b.element) {
+    shared = `Both cards sit in ${a.element}, which doubles the register rather than
+      balancing it — expect intensity rather than nuance.`;
+  } else if (a.arcana === 'major' && b.arcana === 'major') {
+    shared = 'Two major arcana together describe a structural moment, not a passing mood.';
+  } else if (a.arcana !== b.arcana) {
+    const [maj, min] = a.arcana === 'major' ? [a, b] : [b, a];
+    shared = `${maj.name} sets the theme and ${min.name} says where it lands in practice.`;
+  } else if (a.suit === b.suit) {
+    shared = `Two ${DATA.suits[a.suit].name} narrow the reading firmly onto ${DATA.suits[a.suit].domain}.`;
+  } else {
+    shared = `The two cards come from different registers, so read them as cause and
+      consequence rather than as a single statement.`;
+  }
+  const tension = `${a.name} pulls toward ${a.upKeys[0]}; ${b.name} pulls toward
+    ${b.upKeys[0]}. Where those two meet is the actual subject of the reading.`;
+
+  const picker = (which, current) => `<select onchange="setCombo('${which}', this.value)">
+    ${majors.map(c => `<option value="${c.slug}"${c.slug===current?' selected':''}>${esc(c.name)}</option>`).join('')}
+  </select>`;
+
+  return `<div class="wrap stack">
+    <p class="eyebrow">Combination</p>
+    <h1>${esc(a.name)} and ${esc(b.name)} together</h1>
+
+    <div class="row" style="gap:.6rem;align-items:center">
+      ${picker('a', comboA)} <span class="mono">+</span> ${picker('b', comboB)}
+    </div>
+
+    <ul class="pair">
+      ${[a,b].map(c => `<li>${face(c.slug,false)}
+        <button onclick="openCard('${c.slug}')">${esc(c.name)}</button></li>`).join('')}
+    </ul>
+
+    <h2 class="label">What they share</h2><p>${esc(shared)}</p>
+    <h2 class="label">Where they pull apart</h2><p>${esc(tension)}</p>
+
+    <h2>Each card on its own</h2>
+    <p><strong>${esc(a.name)}.</strong> ${esc(a.up)}</p>
+    <p><strong>${esc(b.name)}.</strong> ${esc(b.up)}</p>
+
+    <h2>Reversed</h2>
+    <p>Either card reversed changes the pair rather than just itself. ${esc(a.name)}
+      reversed reads as ${esc(a.revKeys.slice(0,2).join(' or '))}, which turns the shared
+      ground above into a question rather than a statement. The same is true of
+      ${esc(b.name)} reversed: ${esc(b.revKeys.slice(0,2).join(' or '))}.</p>
+  </div>`;
+}
 
 function cardView() {
   const c = BY_SLUG.get(currentCard);
@@ -521,6 +643,12 @@ function cardView() {
             a reading is what it means next to the others.</span>
           <div class="row"><button class="btn solid" onclick="go('r:three-card')">Draw three cards</button></div>
         </div>
+        <h2>${esc(c.name)} by question</h2>
+        <div class="row">
+          ${DATA.contexts.filter(x => x.slug !== 'general' && c.ctx[x.slug])
+            .map(x => `<button class="btn" onclick="openCtx('${c.slug}','${x.slug}')">${esc(x.label)}</button>`).join('')}
+        </div>
+
         <h2>Read next</h2>
         <div class="deck" style="grid-template-columns:repeat(2,minmax(0,104px))">
           ${near.map(n => `<button onclick="openCard('${n.slug}')">${face(n.slug,false)}<span class="cap">${esc(n.name)}</span></button>`).join('')}
@@ -596,6 +724,8 @@ function render() {
   main.innerHTML = page === 'home' ? homeView()
     : page === 'deck' ? deckView()
     : page === 'card' ? cardView()
+    : page === 'ctx' ? ctxView()
+    : page === 'combo' ? comboView()
     : readingView(page.slice(2));
 
   document.querySelectorAll('#tabs button').forEach(b => {
@@ -608,6 +738,19 @@ function render() {
 function go(id) { page = id; render(); }
 
 function openCard(slug) { currentCard = slug; go('card'); }
+
+function openCtx(slug, ctx) { currentCard = slug; currentCtx = ctx; go('ctx'); }
+
+function setCombo(which, slug) {
+  if (which === 'a') comboA = slug; else comboB = slug;
+  // A card paired with itself is not a combination; nudge the other one along.
+  if (comboA === comboB) {
+    const majors = DATA.cards.filter(c => c.arcana === 'major').map(c => c.slug);
+    const at = majors.indexOf(comboB);
+    comboB = majors[(at + 1) % majors.length];
+  }
+  render();
+}
 
 function redraw(slug) {
   const st = state[slug];
