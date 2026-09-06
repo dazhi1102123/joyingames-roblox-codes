@@ -1,11 +1,13 @@
 import type { Metadata } from "next"
-import { isOperator } from "@/lib/auth"
 import { unpaidOrders } from "@/lib/orders"
 import { listReaders } from "@/lib/readers"
 import { subscriberStats } from "@/lib/subscribers"
 import { channelsAreSeparated } from "@/lib/mailer"
-import { provider } from "@/lib/payments"
+import { paymentStatus } from "@/lib/payments"
 import { providerStatus } from "@/lib/interpreter"
+import { accountStats } from "@/lib/accounts"
+import { recent } from "@/lib/audit"
+import { adminEmails, isOperator, operatorName } from "@/lib/auth"
 import { markPaid, signInOperator } from "@/lib/actions"
 
 export const metadata: Metadata = { title: "Operator", robots: { index: false, follow: false } }
@@ -26,9 +28,18 @@ export default async function Admin() {
             Sign in
           </button>
         </form>
-        {!process.env.ADMIN_KEY && (
+        {adminEmails().length > 0 && (
+          <p className="note">
+            Operators named in ADMIN_EMAILS can also reach this console by{" "}
+            <a href="/account">signing in with their email</a> — which is what
+            lets the trail below say who did something rather than just that
+            somebody did.
+          </p>
+        )}
+        {!process.env.ADMIN_KEY && adminEmails().length === 0 && (
           <aside className="disclaimer">
-            <strong>ADMIN_KEY is not set.</strong> Nobody can sign in until it is.
+            <strong>Neither ADMIN_KEY nor ADMIN_EMAILS is set.</strong> Nobody
+            can sign in until one of them is.
           </aside>
         )}
       </article>
@@ -40,6 +51,10 @@ export default async function Admin() {
   const subs = subscriberStats()
   const separated = channelsAreSeparated()
   const ai = providerStatus()
+  const pay = paymentStatus()
+  const accounts = accountStats()
+  const trail = recent(20)
+  const who = await operatorName()
 
   return (
     <article className="prose-wide">
@@ -48,8 +63,20 @@ export default async function Admin() {
 
       <dl className="facts">
         <div>
+          <dt>Signed in as</dt>
+          <dd>{who}</dd>
+        </div>
+        <div>
           <dt>Payment provider</dt>
-          <dd>{provider().name}</dd>
+          <dd>
+            {pay.configured ? (
+              pay.active
+            ) : (
+              <strong className="missing">
+                {pay.requested} selected but not configured — checkout will fail
+              </strong>
+            )}
+          </dd>
         </div>
         <div>
           <dt>Interpretation</dt>
@@ -79,6 +106,13 @@ export default async function Admin() {
           <dt>Subscribers</dt>
           <dd>
             {subs.confirmed ?? 0} confirmed · {subs.pending ?? 0} pending
+          </dd>
+        </div>
+        <div>
+          <dt>Accounts</dt>
+          <dd>
+            {accounts.active} active
+            {accounts.total !== accounts.active && ` · ${accounts.total - accounts.active} banned`}
           </dd>
         </div>
       </dl>
@@ -142,9 +176,40 @@ export default async function Admin() {
         </tbody>
       </table>
 
+      <h2>Recent operator actions</h2>
+      {trail.length === 0 ? (
+        <p className="note">Nothing recorded yet.</p>
+      ) : (
+        <table className="ledger">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Who</th>
+              <th>What</th>
+              <th>Target</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trail.map((entry) => (
+              <tr key={entry.id}>
+                <td>{new Date(entry.at).toLocaleString()}</td>
+                <td>{entry.actor}</td>
+                <td>{entry.action}</td>
+                <td className="mono">{entry.target.slice(0, 12)}</td>
+                <td>{entry.note}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
       <p>
         <a className="btn" href="/admin/payouts">
           Payout ledger →
+        </a>{" "}
+        <a className="btn" href="/admin/accounts">
+          Accounts →
         </a>
       </p>
     </article>

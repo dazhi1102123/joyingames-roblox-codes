@@ -40,6 +40,21 @@ import { addReader, listReaders } from "./lib/readers"
 import { createOrder, setPayment, setStatus } from "./lib/orders"
 import { payoutsOwed, readerEarnings, settleReader } from "./lib/payouts"
 import { CONSENT_TEXT, confirmSubscriber, getSubscriber, subscribe, unsubscribe } from "./lib/subscribers"
+import {
+  accountByEmail,
+  accountForSession,
+  cookieOptions,
+  endSession,
+  issueLink,
+  normaliseEmail,
+  redeemLink,
+  setAccountStatus,
+  tooSoonForLink,
+} from "./lib/accounts"
+import { record, recent } from "./lib/audit"
+import { db } from "./lib/db"
+import { displayAmount, paymentStatus } from "./lib/payments"
+import { interpreter as pickInterpreter } from "./lib/interpreter"
 import { POSTAL_ADDRESS, channelsAreSeparated, sendMarketing } from "./lib/mailer"
 import { buildPrompt, interpreter, providerStatus, violatesRules } from "./lib/interpreter"
 import { comboPairs } from "./lib/pages"
@@ -288,6 +303,83 @@ function verifyOrders() {
     `owed ${before.owed}→${after.owed}, paid ${before.paid}→${after.paid}`)
 }
 
+function verifyAccounts() {
+  section("Accounts")
+
+  check("a plain address normalises", normaliseEmail("  Reader@Example.TEST ") === "reader@example.test")
+  check("something that is not an address is refused", normaliseEmail("nope") === null)
+
+  const email = `acct-${Date.now()}@example.test`
+  const link = issueLink(email)
+  check("asking for a link creates the account", accountByEmail(email)?.status === "active")
+
+  // The link is what arrives in a mailbox, so it must be worth nothing after
+  // one use -- a mailbox is a place other people sometimes reach.
+  const session = redeemLink(link)
+  check("a fresh link mints a session", !!session)
+  check("the same link a second time gives nothing", redeemLink(link) === null)
+
+  const account = accountByEmail(email)!
+  check("the session resolves to its account", accountForSession(session!)?.id === account.id)
+  check("a made-up session resolves to nobody", accountForSession("not-a-session") === null)
+
+  // Asking twice in a row is how a stranger turns this form into a way to
+  // send mail to anyone, as fast as they can type.
+  check("a second link request is refused within the cooldown", tooSoonForLink(email) === true)
+
+  // Two separate guarantees, and testing only the first hides the second.
+  // Banning drops the account's sessions...
+  setAccountStatus(account.id, "banned")
+  check("banning drops the sessions that account holds",
+    accountForSession(session!) === null)
+  setAccountStatus(account.id, "active")
+  check("a restored account still cannot use the dropped session",
+    accountForSession(session!) === null)
+
+  // ...and separately, a session is re-checked against the account's status on
+  // every request. That is what makes a ban applied anywhere else -- another
+  // instance, a hand-edited row, a restored backup -- take effect immediately
+  // rather than whenever the cookie happens to expire. Write the status
+  // directly so the session row survives and only the re-read can catch it.
+  const live = redeemLink(issueLink(`acct3-${Date.now()}@example.test`))!
+  const banned = accountForSession(live)!
+  db().prepare("UPDATE accounts SET status = 'banned' WHERE id = ?").run(banned.id)
+  check("a session is re-checked against account status on every request",
+    accountForSession(live) === null)
+
+  const fresh = redeemLink(issueLink(`acct2-${Date.now()}@example.test`))!
+  endSession(fresh)
+  check("signing out ends the session", accountForSession(fresh) === null)
+
+  // Never Secure on localhost, always Secure anywhere else. Getting this
+  // backwards makes sign-in fail with no error visible anywhere.
+  check("cookies are Secure off localhost and not on it",
+    cookieOptions("localhost:3000", 60).secure === false &&
+      cookieOptions("arcanapress.com", 60).secure === true)
+
+  section("Operator trail")
+
+  const marker = `verify-${Date.now()}`
+  record("verify@example.test", "verify.check", marker, "written by the verifier")
+  const trail = recent(5)
+  check("an operator action is recorded with who did it",
+    trail.some((e) => e.target === marker && e.actor === "verify@example.test"))
+
+  section("Payments")
+
+  const pay = paymentStatus()
+  check("the selected payment provider is configured",
+    pay.configured,
+    pay.configured ? pay.active : `${pay.requested} selected but missing credentials`)
+
+  // The provider prices in units, not cents. Sending 3500 would be accepted as
+  // three and a half thousand euros and the first sign of it would be a
+  // chargeback, so this is checked rather than trusted.
+  check("prices go to the provider in units, not cents",
+    displayAmount(3500) === "35.00" && displayAmount(4999) === "49.99" &&
+      displayAmount(500) === "5.00")
+}
+
 async function verifySubscribers() {
   section("Mailing list")
 
@@ -397,6 +489,8 @@ async function verifySite() {
     ["/readers", "readers"],
     ["/desk", "reader desk"],
     ["/admin", "operator console"],
+    ["/admin/accounts", "operator accounts"],
+    ["/account", "visitor account"],
     ["/legal/notice", "legal notice"],
     ["/healthz", "health"],
     ["/robots.txt", "robots"],
@@ -521,6 +615,7 @@ async function main() {
   verifyFollowUps()
   verifyInterpreter()
   verifyOrders()
+  verifyAccounts()
   await verifySubscribers()
 
   const server = await startServer()

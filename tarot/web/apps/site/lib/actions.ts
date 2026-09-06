@@ -5,7 +5,18 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { SPREADS, drawCards } from "@arcana/core"
 
-import { clientIp, currentReader, isOperator } from "./auth"
+import {
+  SESSION_COOKIE,
+  cookieOptions,
+  endSession,
+  issueLink,
+  normaliseEmail,
+  setAccountStatus,
+  sweepSessions,
+  tooSoonForLink,
+} from "./accounts"
+import { record } from "./audit"
+import { clientIp, currentAccount, currentReader, isOperator, operatorName } from "./auth"
 import { sendTransactional } from "./mailer"
 import { createOrder, purgeExpired, setPayment, setStatus } from "./orders"
 import { provider } from "./payments"
@@ -48,7 +59,10 @@ export async function placeOrder(formData: FormData) {
   const spread = SPREADS[spreadSlug]
   if (!spread) fail(back, "Unknown spread.")
 
+  const buyer = await currentAccount()
+
   const token = createOrder(reader, {
+    account_id: buyer?.id ?? null,
     focus: String(formData.get("focus") ?? "general").slice(0, 32),
     situation: situation.slice(0, MAX_SITUATION),
     tried: String(formData.get("tried") ?? "").trim().slice(0, MAX_SITUATION),
@@ -82,27 +96,8 @@ export async function placeOrder(formData: FormData) {
  * Invalidating the path first is what makes the session visible.
  */
 async function sessionCookie(name: string, value: string, maxAge: number) {
-  // Secure everywhere except an explicitly local host.
-  //
-  // Tying it to NODE_ENV instead means a production build reached over plain
-  // HTTP sets a Secure cookie the browser silently drops, and sign-in fails
-  // with no error visible anywhere. Keying it on the Host header rather than
-  // x-forwarded-proto is deliberate: a forwarded-proto header is attacker-
-  // supplied unless the proxy overwrites it, and trusting it would let a
-  // request downgrade its own cookie.
   const host = (await headers()).get("host") ?? ""
-  const local = host.startsWith("localhost:") || host.startsWith("127.0.0.1:")
-  return [
-    name,
-    value,
-    {
-      httpOnly: true,
-      sameSite: "lax" as const,
-      secure: !local,
-      path: "/",
-      maxAge,
-    },
-  ] as const
+  return [name, value, cookieOptions(host, maxAge)] as const
 }
 
 export async function signInReader(formData: FormData) {
@@ -165,14 +160,35 @@ export async function signInOperator(formData: FormData) {
 
 export async function markPaid(formData: FormData) {
   if (!(await isOperator())) fail("/admin", "Not authorised.")
-  setPayment(String(formData.get("token") ?? ""), "paid")
+  const token = String(formData.get("token") ?? "")
+  setPayment(token, "paid")
+  // Recorded after the fact rather than before: a line saying something
+  // happened that then did not is worse than no line.
+  record(await operatorName(), "order.mark_paid", token)
   revalidatePath("/admin", "layout")
 }
 
 export async function settle(formData: FormData) {
   if (!(await isOperator())) fail("/admin", "Not authorised.")
-  settleReader(Number(formData.get("reader_id")))
+  const readerId = Number(formData.get("reader_id"))
+  const settled = settleReader(readerId)
+  record(
+    await operatorName(),
+    "payout.settle",
+    String(readerId),
+    `${settled.jobs} jobs, ${settled.cents} cents`,
+  )
   revalidatePath("/admin/payouts", "layout")
+}
+
+export async function setAccountStatusAction(formData: FormData) {
+  if (!(await isOperator())) fail("/admin/accounts", "Not authorised.")
+  const id = Number(formData.get("account_id"))
+  const status = String(formData.get("status")) === "banned" ? "banned" : "active"
+  if (!Number.isInteger(id) || id <= 0) fail("/admin/accounts", "Unknown account.")
+  setAccountStatus(id, status)
+  record(await operatorName(), `account.${status}`, String(id))
+  revalidatePath("/admin/accounts", "layout")
 }
 
 // --- list -------------------------------------------------------------------
@@ -202,4 +218,43 @@ export async function confirmAction(token: string) {
 
 export async function unsubscribeAction(token: string) {
   return unsubscribe(token)
+}
+
+
+// --- accounts ---------------------------------------------------------------
+
+/** Ask for a sign-in link.
+ *
+ * The reply is the same whether or not the address is already known, and the
+ * same whether or not the mail went out. Anything else turns this form into a
+ * way to ask "does this person have an account here?", which for a tarot site
+ * is a question worth refusing on its own.
+ */
+export async function requestSignInLink(formData: FormData) {
+  sweepSessions()
+  const email = normaliseEmail(String(formData.get("email") ?? ""))
+  if (!email) fail("/account", "That does not look like an email address.")
+
+  if (!tooSoonForLink(email)) {
+    const link = issueLink(email)
+    await sendTransactional({
+      to: email,
+      subject: "Your sign-in link",
+      text:
+        `Here is your link to sign in to ${SITE.name}:\n\n` +
+        `${SITE.url}/account/callback?t=${link}\n\n` +
+        `It works once and stops working in 15 minutes.\n\n` +
+        `If you did not ask for this, ignore it — nothing has changed and\n` +
+        `no account was created in your name by someone else asking.\n`,
+    })
+  }
+  redirect("/account?sent=1")
+}
+
+export async function signOutAccount() {
+  const jar = await cookies()
+  endSession(jar.get(SESSION_COOKIE)?.value)
+  jar.delete(SESSION_COOKIE)
+  revalidatePath("/account", "layout")
+  redirect("/account")
 }

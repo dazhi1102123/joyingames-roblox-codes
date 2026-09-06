@@ -16,6 +16,9 @@ importers:
       '@arcana/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@waffo/pancake-ts':
+        specifier: ^0.20.0
+        version: 0.20.0
       better-sqlite3:
         specifier: ^13.0.3
         version: 13.0.3
@@ -458,6 +461,10 @@ packages:
   '@types/react@19.2.18':
     resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
 
+  '@waffo/pancake-ts@0.20.0':
+    resolution: {integrity: sha512-FxteqrW+rg2e227jB01IvQi45w6WqleTgEXsX7eyPimSOWbIR2QivDtoktTRBKm12YiN0ZaQKTIkr6T9+TR1eQ==}
+    engines: {node: '>=20.0.0'}
+
   better-sqlite3@13.0.3:
     resolution: {integrity: sha512-RbOBxmLBG8uvFUc15X9+9SFemKcQ0WBuISBVkpuiaUB2qblC8UWlHEjdWVoZ8AdhSwmoEgsiXKfopX0CQxaACQ==}
     engines: {node: '>=22'}
@@ -852,6 +859,8 @@ snapshots:
   '@types/react@19.2.18':
     dependencies:
       csstype: 3.2.3
+
+  '@waffo/pancake-ts@0.20.0': {}
 
   better-sqlite3@13.0.3:
     dependencies:

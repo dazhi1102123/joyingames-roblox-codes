@@ -27,12 +27,37 @@ phrase The Tower badly; it cannot decide The Tower means good luck.
 
 | Variable | Effect |
 |---|---|
-| `AI_PROVIDER` | `corpus` (default), `claude`, or `openai` |
+| `AI_PROVIDER` | `corpus` (default), `claude`, `openai`, or `kie` |
 | `ANTHROPIC_API_KEY` | required for `claude` |
 | `CLAUDE_MODEL` | defaults to `claude-opus-5` |
 | `OPENAI_API_KEY` | required for `openai` |
 | `OPENAI_MODEL` | defaults to `gpt-4.1-mini` |
+| `KIE_API_KEY` | required for `kie` |
+| `KIE_BASE_URL` | defaults to `https://api.kie.ai` |
+| `KIE_MODEL` | one of `claude-opus-5`, `claude-opus-4-8`, `gpt-5-5`, `gpt-5-4`, `gemini-3-pro`, `gemini-3-flash` |
+| `KIE_TIMEOUT_MS` | defaults to 60000 |
 | `AI_RATE_PER_MINUTE` | per-IP cap, default 6 |
+
+## KIE
+
+One key in front of several vendors' models, which is worth having when
+Anthropic and OpenAI each want their own account and their own card.
+
+It is a passthrough, so the request shape is the *upstream vendor's*, chosen by
+which model you name: Claude models go to `/claude/v1/messages`, GPT to
+`/codex/v1/responses`, Gemini to `/{model}/v1/chat/completions`. A model that is
+not in the table above is an error before the request rather than a rejection
+after it.
+
+Unlike the other two it does not stream. KIE is documented as a non-streaming
+passthrough, and guessing at an SSE shape would trade a reading that arrives
+whole for one that may not arrive at all. Nobody is left waiting on a blank
+page meanwhile: the corpus reading is already on screen and the model's reply
+replaces it when it lands.
+
+A reply that hit the token ceiling is discarded rather than shown. A reading
+that stops mid-sentence reads as the site being broken, which is worse than the
+corpus reading it falls back to.
 
 Set `AI_PROVIDER` to a provider whose key is missing and the site serves the
 corpus reading and says so in `/admin` — it does not fail the request.

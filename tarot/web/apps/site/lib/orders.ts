@@ -76,6 +76,8 @@ export function createOrder(
     birth_ymd: string
     spread_slug: string
     drawn: Array<{ slug: string; reversed: boolean }>
+    /** Set when the buyer was signed in. Null is the normal case. */
+    account_id?: number | null
   },
 ): string {
   const tok = token()
@@ -88,8 +90,8 @@ export function createOrder(
       `INSERT INTO orders
          (token, reader_id, status, focus, situation, tried, birth_ymd,
           spread_slug, drawn, price_cents, currency, created_at, expires_at,
-          reader_fee_cents)
-       VALUES (?,?,'open',?,?,?,?,?,?,?,?,?,?,?)`,
+          reader_fee_cents, account_id)
+       VALUES (?,?,'open',?,?,?,?,?,?,?,?,?,?,?,?)`,
     )
     .run(
       tok,
@@ -105,6 +107,7 @@ export function createOrder(
       now(),
       expires,
       reader.payout_cents ?? 0,
+      input.account_id ?? null,
     )
   return tok
 }
@@ -156,6 +159,19 @@ export function setPayment(
       .run(status, reference, tok)
   }
   return true
+}
+
+/** Everything this account has ordered.
+ *
+ * Only orders placed while signed in appear here. An older order is still
+ * reachable by its token -- the account is a convenience, and pretending
+ * otherwise would mean asking people to prove which orders were theirs.
+ */
+export function ordersForAccount(accountId: number, limit = 100): Order[] {
+  const rows = db()
+    .prepare(`${JOIN} WHERE o.account_id = ? ORDER BY o.created_at DESC LIMIT ?`)
+    .all(accountId, limit)
+  return rows.map(shape)
 }
 
 /** Resolve a provider's reference back to an order, for webhook handling. */

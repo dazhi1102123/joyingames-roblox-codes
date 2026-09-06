@@ -18,7 +18,7 @@ import { SPREADS, composeReading, hydrate, type DrawSpec, type Reading } from "@
  * Tower means good luck.
  */
 
-export type Provider = "corpus" | "claude" | "openai"
+export type Provider = "corpus" | "claude" | "openai" | "kie"
 
 export interface InterpretRequest {
   spread: string
@@ -231,11 +231,147 @@ class OpenAIInterpreter implements Interpreter {
 }
 
 // --------------------------------------------------------------------------
+// KIE
+//
+// One key in front of several vendors' models. Worth having as a third option
+// for a China-based operator: Anthropic and OpenAI both need their own
+// account and their own card, and KIE is one of each.
+//
+// It is a passthrough, so the request shape is the *upstream* vendor's, chosen
+// by which model you name -- three different bodies behind one base URL. The
+// table below is the whole of that mapping; a model that is not in it is an
+// error at call time rather than a request KIE will reject.
+// --------------------------------------------------------------------------
+
+type KieShape =
+  | { api: "claude"; model: string }
+  | { api: "responses"; model: string }
+  | { api: "chat"; model: string; path: string }
+
+const KIE_MODELS: Record<string, KieShape> = {
+  "claude-opus-5": { api: "claude", model: "claude-opus-5" },
+  "claude-opus-4-8": { api: "claude", model: "claude-opus-4-8" },
+  "gpt-5-5": { api: "responses", model: "gpt-5-5" },
+  "gpt-5-4": { api: "responses", model: "gpt-5-4" },
+  "gemini-3-pro": { api: "chat", model: "gemini-3-pro", path: "gemini-3-pro" },
+  "gemini-3-flash": { api: "chat", model: "gemini-2.5-flash", path: "gemini-3-flash" },
+}
+
+class KieInterpreter implements Interpreter {
+  readonly name = "kie" as const
+
+  configured() {
+    return Boolean(process.env.KIE_API_KEY) && Boolean(this.shape())
+  }
+
+  private shape(): KieShape | undefined {
+    return KIE_MODELS[process.env.KIE_MODEL ?? "claude-opus-5"]
+  }
+
+  private async post(path: string, body: unknown, extra: Record<string, string> = {}) {
+    const base = (process.env.KIE_BASE_URL ?? "https://api.kie.ai").replace(/\/+$/, "")
+    // A hung upstream would otherwise hold the reading open until the
+    // platform's own timeout, which is far longer than anyone will wait.
+    const abort = AbortSignal.timeout(Number(process.env.KIE_TIMEOUT_MS ?? 60_000))
+    const response = await fetch(base + path, {
+      method: "POST",
+      signal: abort,
+      headers: {
+        Authorization: `Bearer ${process.env.KIE_API_KEY}`,
+        "Content-Type": "application/json",
+        ...extra,
+      },
+      body: JSON.stringify(body),
+    })
+    // Read as text first: an upstream error page is HTML, and response.json()
+    // on it throws a SyntaxError that says nothing about what went wrong.
+    const raw = await response.text()
+    if (!response.ok) throw new Error(`KIE ${response.status}: ${raw.slice(0, 300)}`)
+    try {
+      return JSON.parse(raw) as Record<string, any>
+    } catch {
+      throw new Error(`KIE returned non-JSON: ${raw.slice(0, 300)}`)
+    }
+  }
+
+  /** One request, one chunk.
+   *
+   * KIE is documented as a non-streaming passthrough, and guessing at an SSE
+   * shape here would trade a reading that arrives whole for one that may not
+   * arrive at all. The visitor is not left staring at nothing meanwhile: the
+   * corpus reading is already on screen and this replaces it when it lands.
+   */
+  async *stream(request: InterpretRequest) {
+    const shape = this.shape()
+    if (!shape) throw new Error(`KIE_MODEL is not one of: ${Object.keys(KIE_MODELS).join(", ")}`)
+    const { prompt } = buildPrompt(request)
+
+    if (shape.api === "claude") {
+      const data = await this.post(
+        "/claude/v1/messages",
+        {
+          model: shape.model,
+          max_tokens: 2000,
+          stream: false,
+          system: SYSTEM,
+          messages: [{ role: "user", content: prompt }],
+        },
+        { "anthropic-version": "2023-06-01" },
+      )
+      // A truncated reading is worse than none: it stops mid-sentence and
+      // reads as the site breaking. Throwing keeps the corpus reading.
+      if (data.stop_reason === "max_tokens") throw new Error("KIE truncated the reading")
+      yield (data.content ?? [])
+        .filter((b: any) => b?.type === "text" && typeof b.text === "string")
+        .map((b: any) => b.text)
+        .join("")
+      return
+    }
+
+    if (shape.api === "responses") {
+      const data = await this.post("/codex/v1/responses", {
+        model: shape.model,
+        instructions: SYSTEM,
+        input: [{ role: "user", content: [{ type: "input_text", text: prompt }] }],
+        stream: false,
+        reasoning: { effort: "low" },
+      })
+      if (data.incomplete_details?.reason === "max_output_tokens") {
+        throw new Error("KIE truncated the reading")
+      }
+      const parts: string[] = []
+      for (const item of data.output ?? []) {
+        for (const block of item.content ?? []) {
+          if (typeof block?.text === "string") parts.push(block.text)
+        }
+      }
+      yield parts.join("")
+      return
+    }
+
+    // Chat Completions: the model is selected by the URL path, not the body.
+    const data = await this.post(`/${shape.path}/v1/chat/completions`, {
+      stream: false,
+      messages: [
+        { role: "system", content: SYSTEM },
+        { role: "user", content: prompt },
+      ],
+    })
+    if (data.choices?.[0]?.finish_reason === "length") {
+      throw new Error("KIE truncated the reading")
+    }
+    const content = data.choices?.[0]?.message?.content
+    yield typeof content === "string" ? content : ""
+  }
+}
+
+// --------------------------------------------------------------------------
 
 const INTERPRETERS: Record<Provider, Interpreter> = {
   corpus: new CorpusInterpreter(),
   claude: new ClaudeInterpreter(),
   openai: new OpenAIInterpreter(),
+  kie: new KieInterpreter(),
 }
 
 /** The configured interpreter, or the corpus one when it cannot run.

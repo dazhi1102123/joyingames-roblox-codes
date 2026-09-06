@@ -81,6 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <a href="/daily">Today&rsquo;s card</a>
               <a href="/birth-card">Find your birth card</a>
               <a href="/my-deck">Your reading history</a>
+              <a href="/account">Your account</a>
             </div>
             <div>
               <h4>By question</h4>
