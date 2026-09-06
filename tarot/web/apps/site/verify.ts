@@ -41,6 +41,7 @@ import { createOrder, setPayment, setStatus } from "./lib/orders"
 import { payoutsOwed, readerEarnings, settleReader } from "./lib/payouts"
 import { CONSENT_TEXT, confirmSubscriber, getSubscriber, subscribe, unsubscribe } from "./lib/subscribers"
 import { POSTAL_ADDRESS, channelsAreSeparated, sendMarketing } from "./lib/mailer"
+import { buildPrompt, interpreter, providerStatus, violatesRules } from "./lib/interpreter"
 import { comboPairs } from "./lib/pages"
 import { QUESTIONS } from "./lib/questions"
 
@@ -193,6 +194,55 @@ function verifyFollowUps() {
   check("each answer names a real card from this spread",
     answers.every((a) => reading.cards.some((c) => a!.answer.includes(c.card.name))))
   check("an unknown lens returns null rather than throwing", followUp(reading, "nope") === null)
+}
+
+function verifyInterpreter() {
+  section("Interpretation")
+
+  const spread = SPREADS["three-card"]
+  const drawn = drawCards(spread.count, true)
+  const request = { spread: "three-card", drawn, question: "Should I stay?" }
+
+  const { reading, prompt } = buildPrompt(request)
+  check("the corpus reading is built before any model is called",
+    reading.passages.length === spread.count + 2)  // question echo + cards + synthesis
+  check("the prompt carries every drawn card by name",
+    drawn.every((d) => prompt.includes(cardBySlug(d.slug)!.name)))
+  check("the prompt carries the card meanings, not just the names",
+    drawn.every((d) => {
+      const card = cardBySlug(d.slug)!
+      return prompt.includes((d.reversed ? card.rev : card.up).slice(0, 60))
+    }))
+  check("the prompt carries the question", prompt.includes("Should I stay?"))
+
+  // The rule filter is the last line of defence, so it has to actually fire.
+  const banned = [
+    "You will meet someone this spring.",
+    "He still loves you, the cards are clear.",
+    "She is thinking about you right now.",
+    "This is a guaranteed outcome.",
+    "I am an AI and cannot be certain.",
+  ]
+  const missed = banned.filter((line) => violatesRules(line) === null)
+  check("forbidden claims are caught by the filter", missed.length === 0, missed.join(" | "))
+
+  const allowed = [
+    "Where this is heading on current terms is a decision you have not made.",
+    "The Tower reversed reads as averted disaster, delayed collapse.",
+    "What the spread describes is a situation you are already inside.",
+  ]
+  const falsePositives = allowed.filter((line) => violatesRules(line) !== null)
+  check("ordinary reading language is not caught", falsePositives.length === 0,
+    falsePositives.join(" | "))
+
+  // With no key configured this must fall back rather than fail.
+  const active = interpreter()
+  check("an unconfigured provider falls back to the corpus", active.name === "corpus",
+    `AI_PROVIDER=${process.env.AI_PROVIDER ?? "corpus"} → ${active.name}`)
+
+  const status = providerStatus()
+  check("the fallback is reported, not hidden",
+    status.active === "corpus" && (status.requested === "corpus" || status.fellBack))
 }
 
 function verifyOrders() {
@@ -469,6 +519,7 @@ async function main() {
   verifyCodec()
   verifyReading()
   verifyFollowUps()
+  verifyInterpreter()
   verifyOrders()
   await verifySubscribers()
 

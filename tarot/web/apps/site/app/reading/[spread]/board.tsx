@@ -5,12 +5,12 @@ import {
   composeReading,
   drawCards,
   hydrate,
-  renderMarkdown,
   type Reading,
   type Spread,
 } from "@arcana/core"
 import { CardFace } from "../../card-face"
 import { FollowUps } from "../../follow-ups"
+import { Interpretation } from "../../interpretation"
 
 /** The draw happens in the browser, on purpose.
  *
@@ -104,12 +104,7 @@ export function ReadingBoard({ spread }: { spread: Spread }) {
             ))}
           </ol>
 
-          <section className="interpretation">
-            <h2>The reading</h2>
-            {reading.passages.map((p, i) => (
-              <p key={i} dangerouslySetInnerHTML={{ __html: renderMarkdown(p) }} />
-            ))}
-          </section>
+          <Interpretation reading={reading} />
 
           <FollowUps reading={reading} />
         </>

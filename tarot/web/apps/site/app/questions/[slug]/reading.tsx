@@ -5,12 +5,12 @@ import {
   composeReading,
   drawCards,
   hydrate,
-  renderMarkdown,
   type Reading,
   type Spread,
 } from "@arcana/core"
 import { CardFace } from "../../card-face"
 import { FollowUps } from "../../follow-ups"
+import { Interpretation } from "../../interpretation"
 
 const HISTORY_KEY = "arcana:history"
 const HISTORY_LIMIT = 200
@@ -99,12 +99,7 @@ export function QuestionReading({ spread, lens }: { spread: Spread; lens: string
             <strong>Reading it for this question.</strong> {lens}
           </p>
 
-          <section className="interpretation">
-            <h2>The reading</h2>
-            {reading.passages.map((p, i) => (
-              <p key={i} dangerouslySetInnerHTML={{ __html: renderMarkdown(p) }} />
-            ))}
-          </section>
+          <Interpretation reading={reading} context={lens} />
 
           <FollowUps reading={reading} />
         </>

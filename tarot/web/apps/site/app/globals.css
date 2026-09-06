@@ -490,3 +490,8 @@ h2.label {
 .followup p { margin: 0; }
 .followups .actions { margin-top: .8rem; }
 .followups .btn { font-family: var(--body); font-size: .9rem; letter-spacing: 0; text-transform: none; }
+
+.interpretation h2 .writing {
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--accent);
+}

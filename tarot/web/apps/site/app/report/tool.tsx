@@ -8,11 +8,11 @@ import {
   composeReading,
   drawCards,
   hydrate,
-  renderMarkdown,
   yearCard,
   type Reading,
 } from "@arcana/core"
 import { CardFace } from "../card-face"
+import { Interpretation } from "../interpretation"
 
 /** The intake and the report, both in the browser.
  *
@@ -214,11 +214,10 @@ export function ReportTool() {
             ))}
           </ol>
 
-          <div className="interpretation">
-            {result.reading.passages.map((p, i) => (
-              <p key={i} dangerouslySetInnerHTML={{ __html: renderMarkdown(p) }} />
-            ))}
-          </div>
+          <Interpretation
+            reading={result.reading}
+            context={`A written report. The visitor chose "${result.focusLabel}"${result.tried ? ` and has already tried: ${result.tried}` : ""}.`}
+          />
 
           <section className="brief">
             <h3>Your colour and stone</h3>

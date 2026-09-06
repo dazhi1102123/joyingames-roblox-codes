@@ -5,6 +5,7 @@ import { listReaders } from "@/lib/readers"
 import { subscriberStats } from "@/lib/subscribers"
 import { channelsAreSeparated } from "@/lib/mailer"
 import { provider } from "@/lib/payments"
+import { providerStatus } from "@/lib/interpreter"
 import { markPaid, signInOperator } from "@/lib/actions"
 
 export const metadata: Metadata = { title: "Operator", robots: { index: false, follow: false } }
@@ -38,6 +39,7 @@ export default async function Admin() {
   const readers = listReaders(false)
   const subs = subscriberStats()
   const separated = channelsAreSeparated()
+  const ai = providerStatus()
 
   return (
     <article className="prose-wide">
@@ -48,6 +50,18 @@ export default async function Admin() {
         <div>
           <dt>Payment provider</dt>
           <dd>{provider().name}</dd>
+        </div>
+        <div>
+          <dt>Interpretation</dt>
+          <dd>
+            {ai.fellBack ? (
+              <strong className="missing">
+                {ai.requested} requested, no key — serving the corpus reading
+              </strong>
+            ) : (
+              ai.active
+            )}
+          </dd>
         </div>
         <div>
           <dt>Mail channels</dt>
