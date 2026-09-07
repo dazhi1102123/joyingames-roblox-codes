@@ -17,6 +17,7 @@ import {
 } from "./accounts"
 import { record } from "./audit"
 import { clientIp, currentAccount, currentReader, isOperator, operatorName } from "./auth"
+import { confirmEmail } from "./emails"
 import { sendTransactional } from "./mailer"
 import { createOrder, purgeExpired, setPayment, setStatus } from "./orders"
 import { provider } from "./payments"
@@ -194,20 +195,38 @@ export async function setAccountStatusAction(formData: FormData) {
 // --- list -------------------------------------------------------------------
 
 export async function subscribeAction(formData: FormData) {
+  const source = String(formData.get("source") ?? "web").slice(0, 64)
+
+  // Where to send them if this fails. Only a same-site path is accepted: a
+  // form field that becomes a redirect target is an open redirect unless it is
+  // checked, and "//evil.test" is a path-looking string that leaves the site.
+  const asked = String(formData.get("back") ?? "")
+  const back = /^\/(?!\/)[\w\-/]*$/.test(asked) ? asked : "/"
+
+  // The box is `required` in the markup, which stops a browser but not a
+  // script. Consent is the thing being recorded, so it is checked where the
+  // record is written rather than where it is displayed.
+  if (formData.get("consent") !== "yes") {
+    fail(back, "Tick the box to say you want the daily card.")
+  }
+
   const email = String(formData.get("email") ?? "")
-  const token = subscribe(email, String(formData.get("source") ?? "web"), CONSENT_TEXT, await clientIp())
-  if (!token) fail("/", "That does not look like an email address.")
+  const token = subscribe(email, source, CONSENT_TEXT, await clientIp())
+  if (!token) fail(back, "That does not look like an email address.")
 
   // The confirmation is transactional, not marketing: it is the one message a
-  // pending row may receive, and it is what turns the row into consent.
+  // pending row may receive, and it is what turns the row into consent. It
+  // goes out on the transactional channel for that reason -- a pending row has
+  // consented to nothing yet.
+  const message = confirmEmail({
+    confirmUrl: `${SITE.url}/subscribe/confirm?t=${token}`,
+    consentText: CONSENT_TEXT,
+  })
   await sendTransactional({
     to: email.trim().toLowerCase(),
-    subject: "Confirm your daily card",
-    text:
-      `You asked for the daily card from ${SITE.name}.\n\n` +
-      `Confirm here: ${SITE.url}/subscribe/confirm?t=${token}\n\n` +
-      `If this was not you, ignore this message — nothing will be sent.\n\n` +
-      `What you agreed to: "${CONSENT_TEXT}"\n`,
+    subject: message.subject,
+    text: message.text,
+    html: message.html,
   })
   redirect("/subscribe/sent")
 }

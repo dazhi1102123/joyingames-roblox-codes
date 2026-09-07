@@ -26,6 +26,7 @@ import {
   SPREADS,
   SUITS,
   allDateSlugs,
+  briefFor,
   cardBySlug,
   FOLLOW_UP_QUESTIONS,
   composeReading,
@@ -39,7 +40,17 @@ import {
 import { addReader, listReaders } from "./lib/readers"
 import { createOrder, setPayment, setStatus } from "./lib/orders"
 import { payoutsOwed, readerEarnings, settleReader } from "./lib/payouts"
-import { CONSENT_TEXT, confirmSubscriber, getSubscriber, subscribe, unsubscribe } from "./lib/subscribers"
+import {
+  CONSENT_TEXT,
+  confirmSubscriber,
+  confirmedSubscribers,
+  getSubscriber,
+  markSent,
+  subscribe,
+  unsubscribe,
+} from "./lib/subscribers"
+import { confirmEmail, dailyEmail } from "./lib/emails"
+import { sendDaily } from "./lib/daily"
 import {
   accountByEmail,
   accountForSession,
@@ -380,6 +391,91 @@ function verifyAccounts() {
       displayAmount(500) === "5.00")
 }
 
+
+async function verifyDailySend() {
+  section("The daily send")
+
+  // Dry run is the default, in the runner and not only in the CLI. A send
+  // function whose no-argument behaviour is "mail everyone" is one arrow-up
+  // away from a mistake with no undo.
+  const dry = await sendDaily({ log: () => {} })
+  check("the default is a dry run", dry.dry === true)
+  check("a dry run sends nothing", dry.sent >= 0 && dry.failed === 0)
+  check("the run names the day's card", !!dry.card && dry.day.length === 10, `${dry.card} on ${dry.day}`)
+
+  // Idempotence is a clause in the query, not a flag somewhere: a scheduler
+  // that retries on timeout -- which is all of them -- must not double-send.
+  const email = `daily-${Date.now()}@example.test`
+  const tok = subscribe(email, "verify", CONSENT_TEXT, "127.0.0.1")!
+  confirmSubscriber(tok, "127.0.0.1")
+  const row = confirmedSubscribers(500, 0).find((r) => r.email === email)
+  check("a confirmed address is in the send list", !!row)
+
+  const midnight = new Date(
+    Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()),
+  ).toISOString().replace(/\.\d{3}Z$/, "Z")
+  check("it is still in the list before being sent today",
+    confirmedSubscribers(500, 0, midnight).some((r) => r.email === email))
+  markSent([row!.id])
+  check("and drops out of it once sent today",
+    !confirmedSubscribers(500, 0, midnight).some((r) => r.email === email))
+
+  section("Email")
+
+  const day = new Date(Date.UTC(2026, 8, 7))
+  const brief = briefFor(CARDS[0], false)
+  const mail = dailyEmail({ brief, day, reportUrl: "https://example.test/report" })
+
+  // A message with no plain-text alternative scores worse with spam filters,
+  // and for a list this size that is the difference between the inbox and the
+  // promotions tab.
+  check("the daily email has both a text and an HTML part",
+    mail.text.length > 200 && mail.html.length > 500)
+  check("the card is named in the subject and the body",
+    mail.subject.includes(CARDS[0].name) && mail.text.includes(CARDS[0].name))
+
+  // The postal address and the unsubscribe line are appended by sendMarketing
+  // rather than written into each template, so that is where they are checked
+  // -- and in both parts, because a reader whose client shows HTML never sees
+  // the text one. This can only run for real once an address is configured;
+  // until then the existing "refused, not sent" check is the guarantee.
+  if (POSTAL_ADDRESS.trim()) {
+    const printed: string[] = []
+    const realLog = console.log
+    console.log = (...args: unknown[]) => { printed.push(args.join(" ")) }
+    try {
+      await sendMarketing({
+        to: "verify@example.test",
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
+        listUnsubscribe: "<https://example.test/unsubscribe?t=abc>",
+        listUnsubscribePost: true,
+      })
+    } finally {
+      console.log = realLog
+    }
+    const out = printed.join("\n")
+    const parts = out.split("https://example.test/unsubscribe?t=abc").length - 1
+    check("a marketing send carries the postal address",
+      out.includes(POSTAL_ADDRESS.trim()))
+    check("and the unsubscribe link in the header and both body parts",
+      parts >= 3, `${parts} occurrences`)
+  } else {
+    check("marketing footer checked at send time",
+      true, "skipped — set MAIL_POSTAL_ADDRESS to exercise it")
+  }
+
+  // The operator name comes from an environment variable, so it is the one
+  // string in these templates that an operator can put a < or an & into.
+  const injected = confirmEmail({
+    confirmUrl: "https://example.test/subscribe/confirm?t=x",
+    consentText: '<script>alert(1)</script>',
+  })
+  check("template values are escaped, not interpolated raw",
+    !injected.html.includes("<script>") && injected.html.includes("&lt;script&gt;"))
+}
+
 async function verifySubscribers() {
   section("Mailing list")
 
@@ -520,6 +616,28 @@ async function verifySite() {
     const { status } = await get(link)
     if (status !== 200) dead.push(`${status} ${link}`)
   }
+  section("Email capture")
+
+  const { body: daily } = await get("/daily")
+  const box = daily.match(/<input[^>]*name="consent"[^>]*>/)
+  check("the daily page carries the subscribe form", !!box)
+  // Pre-ticking is the failure that matters: a box already ticked is not
+  // consent, and under GDPR Art. 7(1) the burden of proving consent is ours.
+  check("the consent box is required and not pre-ticked",
+    !!box && /required/.test(box[0]) && !/checked/.test(box[0]),
+    box ? box[0] : "no consent input found")
+  check("the form states the exact wording that gets stored",
+    daily.includes(CONSENT_TEXT))
+
+  for (const [path, label] of [
+    ["/cards/the-star", "a card page"],
+    ["/questions/" + QUESTIONS[0].slug, "a question page"],
+    ["/reading/three-card", "a reading page"],
+  ] as Array<[string, string]>) {
+    const { body } = await get(path)
+    check(`${label} asks for the address too`, body.includes('name="consent"'))
+  }
+
   check(`every link on the page index resolves (${links.length - 1} checked)`,
     dead.length === 0, dead.join(", "))
 
@@ -617,6 +735,7 @@ async function main() {
   verifyOrders()
   verifyAccounts()
   await verifySubscribers()
+  await verifyDailySend()
 
   const server = await startServer()
   if (server) {

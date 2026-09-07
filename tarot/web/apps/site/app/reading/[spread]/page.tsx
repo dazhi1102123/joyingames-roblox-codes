@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { SPREADS, spreadBySlug } from "@arcana/core"
 import { ReadingBoard } from "./board"
 import { canonical } from "@/lib/site"
+import { SubscribeForm } from "../../subscribe-form"
 
 type Params = { params: Promise<{ spread: string }> }
 
@@ -54,6 +55,8 @@ export default async function ReadingPage({ params }: Params) {
         advice, and it does not predict what will happen. For anything medical,
         legal or financial, talk to someone qualified.
       </aside>
+
+      <SubscribeForm source="reading" back="/spreads" />
     </article>
   )
 }

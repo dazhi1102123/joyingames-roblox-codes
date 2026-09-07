@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { CARDS, CONTEXTS, CORRESPONDENCES, cardBySlug } from "@arcana/core"
 import { CardFace } from "../../card-face"
 import { canonical } from "@/lib/site"
+import { SubscribeForm } from "../../subscribe-form"
 
 type Params = { params: Promise<{ slug: string }> }
 
@@ -165,6 +166,13 @@ export default async function CardPage({ params }: Params) {
               </ul>
             </section>
           )}
+
+          <SubscribeForm
+            source="card"
+            back="/cards"
+            heading="A card like this one, every morning"
+            blurb="The daily card, read in the same voice as this page. One email, one card, nothing else."
+          />
         </div>
       </div>
     </article>

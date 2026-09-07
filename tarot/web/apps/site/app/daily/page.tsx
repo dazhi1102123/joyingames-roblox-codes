@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { CORRESPONDENCES, briefFor, cardOfTheDay } from "@arcana/core"
 import { CardFace } from "../card-face"
 import { canonical } from "@/lib/site"
+import { SubscribeForm } from "../subscribe-form"
 
 export const metadata: Metadata = {
   title: "Card of the Day",
@@ -74,6 +75,12 @@ export default function Daily() {
               Draw your own
             </a>
           </aside>
+
+          <SubscribeForm
+            source="daily"
+            back="/daily"
+            blurb="This page, in your inbox each morning. One card, read the way the site reads them — no sales copy, no course, no reading you did not ask for."
+          />
 
           <p>
             <a href={`/cards/${card.slug}`}>Read {card.name} in full →</a>

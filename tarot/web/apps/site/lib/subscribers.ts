@@ -104,8 +104,28 @@ export function unsubscribe(tok: string, complained = false): boolean {
 }
 
 /** A page of confirmed subscribers, for a send. Excludes everything else --
- *  pending, unsubscribed and complained addresses are never returned. */
-export function confirmedSubscribers(limit = 500, afterId = 0) {
+ *  pending, unsubscribed and complained addresses are never returned.
+ *
+ * `sentBefore` is what makes a send idempotent and resumable in one clause:
+ * anyone already mailed at or after that instant is skipped. A cron that fires
+ * twice, a retried invocation, a run that died halfway -- all of them resume
+ * instead of mailing the same people again. The Python this is ported from
+ * recorded last_sent_at but never read it, so a double trigger meant a double
+ * send with nothing to notice it.
+ */
+export function confirmedSubscribers(limit = 500, afterId = 0, sentBefore?: string) {
+  if (sentBefore) {
+    return db()
+      .prepare(
+        "SELECT id, email, token FROM subscribers WHERE status = ? AND id > ? " +
+          "AND (last_sent_at IS NULL OR last_sent_at < ?) ORDER BY id LIMIT ?",
+      )
+      .all(SUB_CONFIRMED, afterId, sentBefore, limit) as Array<{
+      id: number
+      email: string
+      token: string
+    }>
+  }
   return db()
     .prepare(
       "SELECT id, email, token FROM subscribers WHERE status = ? AND id > ? ORDER BY id LIMIT ?",

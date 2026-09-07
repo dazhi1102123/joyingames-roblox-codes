@@ -227,6 +227,35 @@ h2.label {
 }
 .cta p { margin: 0; font-size: .95rem; }
 
+/* The email capture. Shares .cta's frame but stacks, because .cta is a row
+   built for one sentence and a button and this is a form. */
+.subscribe { flex-direction: column; align-items: stretch; gap: .85rem; }
+.subscribe .label { margin: 0; }
+.subscribe .note { margin: 0; font-size: .85rem; }
+
+.subscribe-form { display: flex; flex-direction: column; gap: .7rem; margin: 0; }
+.subscribe-form input[type="email"] {
+  width: 100%; padding: .7rem .8rem; font: inherit; font-size: .95rem;
+  color: var(--ink); background: var(--paper);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+}
+.subscribe-form button { align-self: flex-start; }
+
+/* The consent line. Deliberately full size and full colour: shrinking the
+   wording that constitutes consent is how a checkbox stops being one. */
+.consent {
+  display: flex; align-items: flex-start; gap: .55rem;
+  font-size: .88rem; line-height: 1.5; color: var(--ink-2); cursor: pointer;
+}
+.consent input { margin-top: .22rem; flex: none; }
+
+/* Visible to a screen reader, not to the eye. For a label whose field already
+   carries a placeholder -- a placeholder is not a label. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
 .neighbours { list-style: none; padding: 0; display: flex; gap: 1.2rem; flex-wrap: wrap; }
 .neighbours a { text-decoration: none; color: inherit; width: 122px; display: block; }
 

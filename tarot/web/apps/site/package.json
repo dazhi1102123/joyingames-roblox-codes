@@ -8,7 +8,8 @@
     "start": "next start",
     "seed": "tsx --conditions=react-server seed.ts",
     "test": "tsx --conditions=react-server test.ts",
-    "verify": "tsx --conditions=react-server verify.ts"
+    "verify": "tsx --conditions=react-server verify.ts",
+    "daily": "tsx --conditions=react-server send-daily.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

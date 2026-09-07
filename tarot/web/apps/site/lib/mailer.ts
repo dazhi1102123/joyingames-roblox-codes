@@ -84,7 +84,14 @@ class ConsoleProvider implements Provider {
         lines.push("List-Unsubscribe-Post: List-Unsubscribe=One-Click")
       }
     }
-    lines.push("".padEnd(70, "-"), message.text, "".padEnd(70, "-"))
+    lines.push("".padEnd(70, "-"), message.text)
+    // The HTML part too. This provider exists to show what would be sent, and
+    // printing only the text half hid the part almost every reader actually
+    // sees -- including, for a while, whether it carried an unsubscribe link.
+    if (message.html) {
+      lines.push("".padEnd(70, "-"), `HTML (${message.html.length} chars):`, message.html)
+    }
+    lines.push("".padEnd(70, "-"))
     console.log(lines.join("\n"))
   }
 }
@@ -159,12 +166,25 @@ export async function sendMarketing(message: Message): Promise<void> {
   }
 
   // Appended here rather than left to each template, so no future template can
-  // forget it.
-  const footer = `\n\n—\n${POSTAL_ADDRESS}\nYou are receiving this because you confirmed a subscription. Unsubscribe: ${message.listUnsubscribe.replace(/^<|>$/g, "")}\n`
+  // forget it -- and appended to *both* parts, because a reader whose client
+  // shows HTML never sees the text one. Covering only text meant the guarantee
+  // held for nobody who reads mail in a normal client.
+  const link = message.listUnsubscribe.replace(/^<|>$/g, "")
+  const why = "You are receiving this because you confirmed a subscription."
+  const footer = `\n\n—\n${POSTAL_ADDRESS}\n${why} Unsubscribe: ${link}\n`
+
+  const esc = (v: string) =>
+    v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+  const htmlFooter =
+    `<div style="max-width:560px;margin:18px auto 0;padding:0 4px;` +
+    `font-family:'Courier New',monospace;font-size:11px;line-height:1.75;color:#8B8676">` +
+    `${esc(POSTAL_ADDRESS)}<br>${why} ` +
+    `<a href="${esc(link)}" style="color:#8B8676">Unsubscribe</a></div>`
 
   await activeProvider().send(MK, {
     ...message,
     text: message.text.trimEnd() + footer,
+    ...(message.html ? { html: message.html + htmlFooter } : {}),
   })
 }
 

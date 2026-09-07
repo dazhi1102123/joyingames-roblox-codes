@@ -4,6 +4,7 @@ import { SPREADS } from "@arcana/core"
 import { QUESTIONS, QUESTIONS_BY_SLUG, relatedQuestions } from "@/lib/questions"
 import { canonical } from "@/lib/site"
 import { QuestionReading } from "./reading"
+import { SubscribeForm } from "../../subscribe-form"
 
 type Params = { params: Promise<{ slug: string }> }
 
@@ -124,6 +125,13 @@ export default async function QuestionPage({ params }: Params) {
         advice, and it does not predict what will happen. For anything medical, legal
         or financial, talk to someone qualified.
       </aside>
+
+      <SubscribeForm
+        source="question"
+        back="/questions"
+        heading="One card a morning, by email"
+        blurb="Not about this question — a card for the day, read the way this page reads them. One email, one card."
+      />
     </article>
   )
 }
