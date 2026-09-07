@@ -168,7 +168,7 @@ export function dailyEmail(input: {
     : esc(brief.colour)
 
   const html = `
-<div style="margin:0;padding:24px;background:${GROUND};font-family:${SERIF};color:${INK}">
+<div style="margin:0;padding:24px 24px 0;background:${GROUND};font-family:${SERIF};color:${INK}">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto">
     <tr><td style="padding:0 0 18px;font-family:${MONO};font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:${MUTED}">
       ${esc(SITE.name)} &middot; ${esc(longDate(day))}

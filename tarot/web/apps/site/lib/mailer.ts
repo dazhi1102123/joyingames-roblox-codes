@@ -175,11 +175,15 @@ export async function sendMarketing(message: Message): Promise<void> {
 
   const esc = (v: string) =>
     v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+  // Carries the same ground colour as the templates. Appended after their
+  // wrapper closes, so without it the footer sits on bare white and reads as
+  // something bolted on by a mail provider rather than part of the message.
   const htmlFooter =
-    `<div style="max-width:560px;margin:18px auto 0;padding:0 4px;` +
+    `<div style="margin:0;padding:0 24px 24px;background:#E6E3D5">` +
+    `<div style="max-width:560px;margin:0 auto;padding:10px 4px 0;` +
     `font-family:'Courier New',monospace;font-size:11px;line-height:1.75;color:#8B8676">` +
     `${esc(POSTAL_ADDRESS)}<br>${why} ` +
-    `<a href="${esc(link)}" style="color:#8B8676">Unsubscribe</a></div>`
+    `<a href="${esc(link)}" style="color:#8B8676">Unsubscribe</a></div></div>`
 
   await activeProvider().send(MK, {
     ...message,
